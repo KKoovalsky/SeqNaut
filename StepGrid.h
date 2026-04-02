@@ -1,8 +1,10 @@
 #pragma once
-#include <Arduino.h>
+#include <stdint.h>
 #include <string.h>
 #include "SeqConfig.h"
 #include "IClockable.h"
+#include "IInstrument.h"
+#include "MusicalTime.h"
 
 // Fired when an active step is reached.
 // trackIdx  — slot index returned by addTrack()
@@ -18,12 +20,11 @@ struct GridStep {
 
 // ── GridTrack ─────────────────────────────────────────────────────────────────
 struct GridTrack {
-    char     name[16]         = {};
-    uint8_t  length           = 16;
-    uint8_t  ticksPerStep     = TICKS_EIGHTH;
-    GridStep steps[MAX_STEPS] = {};
+    char        name[16]          = {};
+    uint8_t     length            = 16;
+    MusicalTime ticksPerStep      = MusicalTime::beats(1);
+    GridStep    steps[MAX_STEPS]  = {};
 
-    // Internal — managed by StepGrid
     bool    _inUse       = false;
     uint8_t _currentStep = 0;
 
@@ -45,27 +46,24 @@ struct GridTrack {
 // Each track has its own ticksPerStep and length — polyrhythm falls out
 // naturally from different combinations.
 //
-// Step firing is aligned to absoluteTick:
-//   track fires when  absoluteTick % ticksPerStep == 0
-// All tracks sharing the same ticksPerStep stay in phase regardless of when
-// they were added.
+// Firing is aligned to absoluteTick:
+//   track fires when  absoluteTick % ticksPerStep.count() == 0
 class StepGrid : public IClockable {
 public:
     StepGrid() = default;
 
-    // Create a track. Returns slot index (0..MAX_TRACKS-1), or -1 if pool full.
-    // Use TICKS_* constants from SeqConfig.h for ticksPerStep.
+    // Returns slot index (0..MAX_TRACKS-1), or -1 if pool is full.
     int8_t addTrack(const char* name,
                     uint8_t     length       = 16,
-                    uint8_t     ticksPerStep = TICKS_EIGHTH) {
+                    MusicalTime ticksPerStep = MusicalTime::beats(1)) {
         for (uint8_t i = 0; i < MAX_TRACKS; i++) {
             if (_tracks[i]._inUse) continue;
-            auto& t       = _tracks[i];
-            t             = {};
+            auto& t         = _tracks[i];
+            t               = {};
             strncpy(t.name, name, sizeof(t.name) - 1);
-            t.length      = length;
-            t.ticksPerStep = ticksPerStep;
-            t._inUse      = true;
+            t.length        = length;
+            t.ticksPerStep  = ticksPerStep;
+            t._inUse        = true;
             return static_cast<int8_t>(i);
         }
         return -1;
@@ -75,7 +73,6 @@ public:
         if (idx < MAX_TRACKS) _tracks[idx]._inUse = false;
     }
 
-    // Returns nullptr if idx is out of range or the slot is empty.
     GridTrack* track(uint8_t idx) {
         if (idx >= MAX_TRACKS || !_tracks[idx]._inUse) return nullptr;
         return &_tracks[idx];
@@ -93,14 +90,13 @@ public:
         for (uint8_t i = 0; i < MAX_TRACKS; i++) {
             auto& t = _tracks[i];
             if (!t._inUse) continue;
-            if (absoluteTick % t.ticksPerStep != 0) continue;
+            if (absoluteTick % t.ticksPerStep.count() != 0) continue;
 
             const uint8_t step = t._currentStep;
             t._currentStep = (t._currentStep + 1) % t.length;
 
-            if (_cb && t.steps[step].active) {
+            if (_cb && t.steps[step].active)
                 _cb(i, step, t.steps[step].velocity);
-            }
         }
     }
 

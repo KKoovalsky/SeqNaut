@@ -8,7 +8,7 @@ set(SKETCH_DIR "${CMAKE_SOURCE_DIR}" CACHE PATH "Sketch directory")
 set(hex_file ${CMAKE_BINARY_DIR}/SeqnautDemo.ino.hex)
 
 add_custom_target(compile
-    COMMAND arduino-cli compile --fqbn ${FQBN} --build ${CMAKE_BINARY_DIR} ${SKETCH_DIR}
+    COMMAND arduino-cli compile --fqbn ${FQBN} --build-path ${CMAKE_BINARY_DIR} ${SKETCH_DIR} --verbose
     WORKING_DIRECTORY ${SKETCH_DIR}
     BYPRODUCTS ${hex_file}
     USES_TERMINAL

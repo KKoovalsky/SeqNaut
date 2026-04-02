@@ -1,100 +1,114 @@
 #pragma once
-#include <Arduino.h>
+#include <stdint.h>
+#include <variant>
 #include "SeqConfig.h"
 #include "IClockable.h"
+#include "IInstrument.h"
+#include "MusicalTime.h"
 
-// Fired on noteOn / noteOff events.
-// pitch    — MIDI note number
-// velocity — 0-127
-// on       — true = noteOn, false = noteOff
-using NoteCallback = void (*)(uint8_t pitch, uint8_t velocity, bool on);
+// PianoRoll — event-list sequencer driven by an external tick counter.
+//
+// Design notes:
+//   - Stateless w.r.t. time: tick() derives position from absoluteTick directly.
+//     No internal playhead — seeking, resetting, and syncing are free.
+//   - NoteIds are stable: removing a note does not shift other ids.
+//   - Instrument is injected separately from construction to support the OSC
+//     workflow where pattern and instrument are created independently.
 
-// ── PRNote ────────────────────────────────────────────────────────────────────
-struct PRNote {
-    uint32_t startTick = 0;
-    uint32_t duration  = TICKS_EIGHTH;
-    uint8_t  pitch     = 60;
-    uint8_t  velocity  = 100;
-
-    // Internal — reset on every pattern loop
-    bool _onFired  = false;
-    bool _offFired = false;
-};
-
-// ── PianoRoll ─────────────────────────────────────────────────────────────────
-// Event-list sequencer. Notes are placed at arbitrary tick positions giving
-// continuous resolution up to the master clock granularity (1 tick).
-// The pattern loops automatically when the local tick reaches lengthTicks.
 class PianoRoll : public IClockable {
 public:
-    // lengthTicks — pattern duration before looping.
-    // Example: 2 bars = 2 * TICKS_WHOLE  (384 ticks at 48 PPQN)
-    explicit PianoRoll(uint32_t lengthTicks = 2 * TICKS_WHOLE)
-        : _length(lengthTicks) {}
+    using NoteId = uint8_t;
 
-    // Add a note. startTick is wrapped to [0, length).
-    // Returns note index, or -1 if pool is full.
-    int8_t addNote(uint32_t startTick,
-                   uint32_t duration,
-                   uint8_t  pitch,
-                   uint8_t  velocity = 100) {
-        if (_count >= MAX_PR_NOTES) return -1;
-        auto& n     = _notes[_count];
-        n.startTick = startTick % _length;
-        n.duration  = duration;
-        n.pitch     = pitch;
-        n.velocity  = velocity;
-        n._onFired  = false;
-        n._offFired = false;
-        return static_cast<int8_t>(_count++);
+    enum class Error {
+        OK,
+        PoolFull,
+        NoteNotFound,
+    };
+
+    explicit PianoRoll(MusicalTime length) : _length(length) {}
+
+    void setInstrument(IInstrument& instrument) { _instrument = &instrument; }
+
+    // Add a note. start is wrapped to [0, length).
+    // Returns NoteId on success, Error otherwise.
+    std::variant<NoteId, Error> addNote(MusicalTime start,
+                                        MusicalTime duration,
+                                        uint8_t     pitch,
+                                        uint8_t     velocity = 100) {
+        for (uint8_t i = 0; i < MAX_PR_NOTES; i++) {
+            if (_notes[i]._active) continue;
+            _notes[i] = { start % _length, duration, pitch, velocity, true };
+            ++_noteCount;
+            return NoteId(i);
+        }
+        return Error::PoolFull;
     }
 
-    void removeNote(uint8_t idx) {
-        if (idx >= _count) return;
-        for (uint8_t i = idx; i < _count - 1; i++) _notes[i] = _notes[i + 1];
-        --_count;
+    Error removeNote(NoteId id) {
+        if (id >= MAX_PR_NOTES || !_notes[id]._active) return Error::NoteNotFound;
+        _notes[id]._active = false;
+        --_noteCount;
+        return Error::OK;
     }
 
     void clear() {
-        _count     = 0;
-        _localTick = 0;
+        for (auto& n : _notes) n._active = false;
+        _noteCount = 0;
     }
 
-    uint8_t  noteCount() const { return _count; }
-    uint32_t length()    const { return _length; }
-    uint32_t localTick() const { return _localTick; }
+    uint8_t noteCount() const { return _noteCount; }
 
-    void onNote(NoteCallback cb) { _cb = cb; }
+    MusicalTime length() const { return _length; }
 
-    void tick(uint32_t /*absoluteTick*/) override {
-        for (uint8_t i = 0; i < _count; i++) {
-            auto& n = _notes[i];
+    // TODO: optimise note lookup in tick().
+    // Current approach is O(n) over the note pool regardless of how many notes
+    // fire at this tick. Candidates:
+    //
+    //  1. Circular bucket array indexed by (absoluteTick % _length.count()):
+    //     each bucket holds the events at that exact tick. tick() becomes an
+    //     O(1) direct lookup; memory scales with pattern length, not note count.
+    //     Fully preserves the stateless property.
+    //
+    //  2. Two sorted event lists (noteOn / noteOff sorted by tick position):
+    //     advance a cursor forward on each call. O(1) when nothing fires,
+    //     O(k) for k simultaneous events. Cursor is the only added state.
+    //
+    //  3. Intrusive linked list / timer wheel sorted by next-fire tick:
+    //     classic O(1)-amortised event scheduler pattern.
+    //
+    // Stateless tick: position is derived from absoluteTick % length.
+    // No internal counter — safe to call with any absoluteTick value.
+    void tick(uint32_t absoluteTick) override {
+        if (!_instrument || _noteCount == 0) return;
 
-            if (!n._onFired && _localTick == n.startTick) {
-                if (_cb) _cb(n.pitch, n.velocity, true);
-                n._onFired = true;
-            }
+        const uint32_t local     = absoluteTick % _length.count();
+        uint8_t        processed = 0;
 
-            const uint32_t offTick = (n.startTick + n.duration) % _length;
-            if (!n._offFired && _localTick == offTick) {
-                if (_cb) _cb(n.pitch, n.velocity, false);
-                n._offFired = true;
-            }
-        }
+        for (uint8_t i = 0; i < MAX_PR_NOTES && processed < _noteCount; i++) {
+            if (!_notes[i]._active) continue;
+            ++processed;
+            const auto& n = _notes[i];
 
-        if (++_localTick >= _length) {
-            _localTick = 0;
-            for (uint8_t i = 0; i < _count; i++) {
-                _notes[i]._onFired  = false;
-                _notes[i]._offFired = false;
-            }
+            if (local == n.start.count())
+                _instrument->noteOn(n.pitch, n.velocity);
+
+            const uint32_t offTick = (n.start + n.duration).count() % _length.count();
+            if (local == offTick)
+                _instrument->noteOff(n.pitch);
         }
     }
 
 private:
-    PRNote       _notes[MAX_PR_NOTES] = {};
-    uint8_t      _count     = 0;
-    uint32_t     _length;
-    uint32_t     _localTick = 0;
-    NoteCallback _cb        = nullptr;
+    struct Note {
+        MusicalTime start;
+        MusicalTime duration;
+        uint8_t     pitch    = 0;
+        uint8_t     velocity = 100;
+        bool        _active  = false;
+    };
+
+    Note         _notes[MAX_PR_NOTES] = {};
+    uint8_t      _noteCount           = 0;
+    MusicalTime  _length;
+    IInstrument* _instrument          = nullptr;
 };
