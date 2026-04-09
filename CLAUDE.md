@@ -20,6 +20,61 @@ wherever it exists, reinvent nothing that does not need reinventing.**
 
 ---
 
+## Vision — Modular Embedded Synth / Groovebox with OSC Control
+
+The concrete application driving this library is a **fully headless, OSC-controlled groovebox**:
+an embedded DSP system controllable in real-time via OSC over UART, enabling external control
+from scripts, CLI tools, or AI-generated patterns.
+
+### Main components
+
+#### Sequencer Engine
+- **Piano Roll sequencer** — note-based (pitch + duration), driven by OSC, supports real-time
+  pattern generation (e.g. AI-generated sequences sent over UART)
+- **Step Grid sequencer** — classic 16/32-step grid, triggers instruments per step, optimised
+  for rhythm and loop-based workflows
+- Both sequencers already implemented in a platform-agnostic form (see below)
+
+#### Sampler Engine
+- Sample-based playback, tightly integrated with the step grid
+- Pitch shifting via playback rate control
+- Runtime sample upload via OSC
+- Dynamic sample bank management
+
+#### Synth Engine (Polysynth)
+- Polyphonic synthesizer: basic waveforms (sine, saw, square, etc.), multiple voices
+- Voice allocation and stealing
+- All parameters OSC-addressable
+- Driven by the piano roll sequencer
+
+#### OSC over UART Interface
+- OSC as the primary control protocol; UART as the transport (embedded-friendly, no WiFi needed)
+- Full control surface: sequencer, sampler, synth parameters
+- Data transfer: samples, patterns
+- Designed for real-time interaction with external systems (AI, scripts, live coding environments)
+
+### Workflow
+
+```
+External system (AI / CLI / script)
+  → generates sequences or control data
+  → sends OSC messages over UART
+       ↓
+Device
+  → receives and parses OSC
+  → updates sequencer / engines
+  → renders audio in real time
+```
+
+### MVP scope
+
+- Piano Roll sequencer
+- Polysynth (8 voices)
+- OSC over UART control
+- No UI — OSC-only control
+
+---
+
 ## What has been implemented so far
 
 The current codebase is a working proof-of-concept on Teensy 4.1 + PJRC Audio Shield (SGTL5000).
@@ -200,6 +255,8 @@ via PortAudio, driven by the same sequencer engine code.
 
 ## Things to keep in mind
 
+- `update()` / `process()` always runs in interrupt context on embedded targets. No blocking,
+  no heap allocation, no `Serial.print` inside the audio path.
 - `uint32_t` subtraction for microsecond timing is intentional — handles `micros()` wrap-around
   (~71 min) correctly without branching.
 - `ClockConnection` must be stored (e.g., as a `static` or member). Discarding the return value
