@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 #include <chrono>
 #include "SeqConfig.h"
 #include "IClockable.h"
