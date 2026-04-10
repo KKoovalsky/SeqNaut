@@ -1,2 +1,7 @@
 TeensyAudio.md
 build/
+
+# Kicad
+*-backups/
+*.lck
+
