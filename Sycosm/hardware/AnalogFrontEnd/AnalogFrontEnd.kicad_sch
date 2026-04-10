@@ -11,6 +11,118 @@
 		(company "Sycosm")
 	)
 	(lib_symbols
+		(symbol "Connector:Conn_01x02"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "J"
+				(at 0 -2.794 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Conn_01x02"
+				(at 0 -5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "Conn_01x02_0_1"
+				(rectangle
+					(start -1.33 -2.286)
+					(end 0 2.286)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "Conn_01x02_1_1"
+				(pin passive line
+					(at 3.81 1.27 180)
+					(length 3.81)
+					(name "Pin_1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 3.81 -1.27 180)
+					(length 3.81)
+					(name "Pin_2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Connector_Audio:AudioJack2"
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -917,7 +1029,7 @@
 				(pin no_connect line
 					(at 8.89 -5.08 180)
 					(length 2.54)
-					(name "NC"
+					(name "VREF"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -925,24 +1037,6 @@
 						)
 					)
 					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin no_connect line
-					(at 8.89 -2.54 180)
-					(length 2.54)
-					(name "NC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "6"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -960,7 +1054,7 @@
 							)
 						)
 					)
-					(number "7"
+					(number "6"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -972,6 +1066,24 @@
 					(at 0 -10.16 270)
 					(length 2.54)
 					(name "VDD"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 8.89 -2.54 180)
+					(length 2.54)
+					(name "NC"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1348,6 +1460,56 @@
 			(embedded_fonts no)
 		)
 	)
+	(text "C1: AC coupling (input)\nfc = 1/(2*pi*R*C)\nR~500k (Rg||Rb1||Rb2), C=1uF\nfc ~ 0.32 Hz"
+		(exclude_from_sim no)
+		(at 39.116 58.928 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "30ce5a4b-67ec-44dc-b96d-a0154cce9d1c")
+	)
+	(text "C2: output AC coupling (bias removal)\nHigh-pass filter with SGTL5000 input impedance\nfc = 1/(2*pi*R*C), R=10k (SGTL5000 LINEIN), C=10uF\nfc ~ 1.6 Hz"
+		(exclude_from_sim no)
+		(at 144.78 92.202 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "449cc58c-1da8-4344-bb52-3deafed388b7")
+	)
+	(text "Cdec2: VDD bulk decoupling\nZ = 1/(2*pi*f*C), C=10uF\n@ 100Hz: Z ~ 159 ohm\n@ 1kHz: Z ~ 16 ohm"
+		(exclude_from_sim no)
+		(at 166.37 44.196 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "451fcd47-ee48-465d-9048-5528476b9609")
+	)
+	(text "Cbias: VBIAS bypass (electrolytic)\nfc = 1/(2*pi*R*C)\nR=Rb1||Rb2~500k, C=47uF\nfc ~ 0.0068 Hz  (DC only)"
+		(exclude_from_sim no)
+		(at 83.058 63.754 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "aca52271-ee81-4f3b-891c-ed0dbbdd217b")
+	)
+	(junction
+		(at 106.68 41.91)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "4785ab99-2e35-4821-beb5-5876cfcc8425")
+	)
 	(junction
 		(at 34.29 71.12)
 		(diameter 0)
@@ -1377,6 +1539,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "b8f84125-9373-4150-a039-55c4c4f37f36")
+	)
+	(junction
+		(at 106.68 39.37)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "c4c35a4a-97b8-4c0f-acb3-854ac5cd6e60")
 	)
 	(junction
 		(at 137.16 71.12)
@@ -1705,6 +1873,16 @@
 			(type default)
 		)
 		(uuid "e0328f34-1041-432c-9404-6d8a50b0b4f5")
+	)
+	(wire
+		(pts
+			(xy 55.88 43.18) (xy 41.91 43.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e62a54a9-e38b-42d8-9add-d09b0c9de28d")
 	)
 	(wire
 		(pts
@@ -2293,6 +2471,84 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:Conn_01x02")
+		(at 102.87 40.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "3516bd89-35d3-48a3-8772-d9bb1febb1b5")
+		(property "Reference" "J4"
+			(at 102.87 36.83 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+5V from Teensy USB"
+			(at 102.87 34.29 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 102.87 40.64 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a3b6d7b5-f078-4c82-baf5-60fc84d38468")
+		)
+		(pin "2"
+			(uuid "75511ec3-901a-4f8c-99d3-c67c786a3127")
+		)
+		(instances
+			(project "AnalogFrontEnd"
+				(path "/f707ac6c-da5b-49e7-8cbe-a1f8f882fc99"
+					(reference "J4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Connector_Audio:AudioJack2")
 		(at 25.4 96.52 0)
 		(unit 1)
@@ -2365,6 +2621,83 @@
 			(project "AnalogFrontEnd"
 				(path "/f707ac6c-da5b-49e7-8cbe-a1f8f882fc99"
 					(reference "J2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+5V")
+		(at 106.68 41.91 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "435333bc-c7e5-4a05-ab77-6a787a15bef7")
+		(property "Reference" "#PWR_J4A"
+			(at 106.68 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+5V"
+			(at 106.68 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 106.68 41.91 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "39f4c4ed-3e62-4955-8f57-a5e414ea5015")
+		)
+		(instances
+			(project "AnalogFrontEnd"
+				(path "/f707ac6c-da5b-49e7-8cbe-a1f8f882fc99"
+					(reference "#PWR_J4A")
 					(unit 1)
 				)
 			)
@@ -2683,7 +3016,7 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:C")
+		(lib_id "Device:CP")
 		(at 148.59 71.12 90)
 		(unit 1)
 		(body_style 1)
@@ -2703,7 +3036,7 @@
 				)
 			)
 		)
-		(property "Value" "1uF"
+		(property "Value" "10uF"
 			(at 146.558 76.2 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2762,7 +3095,7 @@
 	)
 	(symbol
 		(lib_id "power:PWR_FLAG")
-		(at 40.64 55.88 0)
+		(at 55.88 43.18 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -2772,7 +3105,7 @@
 		(dnp no)
 		(uuid "6cde33e0-c471-4c66-9f74-75ea7d760cd0")
 		(property "Reference" "#FLG02"
-			(at 40.64 55.88 0)
+			(at 55.88 43.18 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2783,7 +3116,7 @@
 			)
 		)
 		(property "Value" "PWR_FLAG"
-			(at 40.64 55.88 0)
+			(at 55.88 43.18 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2794,7 +3127,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 0 0 0)
+			(at 15.24 -12.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2805,7 +3138,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 0 0 0)
+			(at 15.24 -12.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -2816,7 +3149,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 40.64 55.88 0)
+			(at 55.88 43.18 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -2934,6 +3267,84 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:Conn_01x02")
+		(at 102.87 40.64 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "71ed1c42-8f96-43f5-b3e0-9a79b21ff344")
+		(property "Reference" "J4"
+			(at 102.87 36.83 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+5V from Teensy USB"
+			(at 102.87 34.29 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 102.87 40.64 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "49e7e06b-69d0-4458-99cb-72fef48e2c86")
+		)
+		(pin "2"
+			(uuid "f7bc9200-0477-4af3-b580-5203cf61d309")
+		)
+		(instances
+			(project "AnalogFrontEnd"
+				(path "/f707ac6c-da5b-49e7-8cbe-a1f8f882fc99"
+					(reference "J4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C")
 		(at 60.96 71.12 90)
 		(unit 1)
@@ -2954,7 +3365,7 @@
 				)
 			)
 		)
-		(property "Value" "470nF"
+		(property "Value" "1uF"
 			(at 57.912 65.532 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3348,7 +3759,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10uF"
+		(property "Value" "47uF"
 			(at 90.678 74.93 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3562,7 +3973,7 @@
 	)
 	(symbol
 		(lib_id "power:+5V")
-		(at 40.64 55.88 0)
+		(at 41.91 43.18 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3572,7 +3983,7 @@
 		(dnp no)
 		(uuid "c18472c3-7265-406d-a5d1-b9ed56e74daf")
 		(property "Reference" "#PWR19"
-			(at 40.64 53.34 0)
+			(at 41.91 40.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3583,7 +3994,7 @@
 			)
 		)
 		(property "Value" "+5V"
-			(at 40.64 54.61 0)
+			(at 41.91 41.91 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3594,7 +4005,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 0 0 0)
+			(at 1.27 -12.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3605,7 +4016,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 0 0 0)
+			(at 1.27 -12.7 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3616,7 +4027,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 40.64 55.88 0)
+			(at 41.91 43.18 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3632,6 +4043,83 @@
 			(project "AnalogFrontEnd"
 				(path "/f707ac6c-da5b-49e7-8cbe-a1f8f882fc99"
 					(reference "#PWR19")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 106.68 39.37 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "c5af11d4-5768-4347-a708-0263109d5d8e")
+		(property "Reference" "#PWR_J4B"
+			(at 106.68 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 106.68 40.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 41.91 -15.24 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 106.68 39.37 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "1f2ad886-086b-4e88-96d0-7d8fb7a18778")
+		)
+		(instances
+			(project "AnalogFrontEnd"
+				(path "/f707ac6c-da5b-49e7-8cbe-a1f8f882fc99"
+					(reference "#PWR_J4B")
 					(unit 1)
 				)
 			)
@@ -3659,7 +4147,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "4.7uF"
+		(property "Value" "10uF"
 			(at 157.988 49.53 0)
 			(show_name no)
 			(do_not_autoplace no)
