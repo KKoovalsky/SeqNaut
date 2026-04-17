@@ -1,5 +1,6 @@
 include(FetchContent)
 
+# Audio decoding library
 FetchContent_Declare(
     dr_libs
     GIT_REPOSITORY https://github.com/mackron/dr_libs.git

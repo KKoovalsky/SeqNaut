@@ -24,14 +24,14 @@ using AudioBusView    = std::span<const AudioBufferView>;
 //
 // Base interface for every node in the audio graph.
 //
-// Inputs arrive as a non-owning AudioBusView — stable pointers into upstream
-// nodes' own output buffers. A node must never hold onto the view beyond its
-// process() call, as upstream buffers will be overwritten on the next block.
+// Subclasses implement three methods only:
+//   process(AudioBusView) — consume inputs, return output views
+//   numInputs()           — number of input channels expected
+//   numOutputs()          — number of output channels produced
 //
-// The return value is a non-owning view into the node's own internal output
-// buffers, which remain valid until the next process() call on this node.
-// Downstream nodes read from it; the graph must not call process() on this
-// node again until all consumers have finished reading.
+// Wiring, traversal order, and output caching are entirely the responsibility
+// of Patch. Nodes have no knowledge of the graph they live in.
+
 class AudioNode {
 public:
     virtual ~AudioNode() = default;
