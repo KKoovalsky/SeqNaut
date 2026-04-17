@@ -1493,6 +1493,17 @@
 		)
 		(uuid "451fcd47-ee48-465d-9048-5528476b9609")
 	)
+	(text "NOTE: It was connected to the Vbias node, but it's wrong!\nWe literally shorted low frequency signals to ground.\nThe proper fix is in README.md. For now leaving it like that (disconnected)."
+		(exclude_from_sim no)
+		(at 64.516 108.712 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8e5f7f3a-411b-4856-b386-41410f4f006c")
+	)
 	(text "Cbias: VBIAS bypass (electrolytic)\nfc = 1/(2*pi*R*C)\nR=Rb1||Rb2~500k, C=47uF\nfc ~ 0.0068 Hz  (DC only)"
 		(exclude_from_sim no)
 		(at 83.058 63.754 0)
@@ -1517,6 +1528,12 @@
 		(uuid "78cae706-ee6f-4adf-8423-3187de43ea43")
 	)
 	(junction
+		(at 101.6 71.12)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "79e3f5c9-a142-40ae-babf-550a903a9e12")
+	)
+	(junction
 		(at 180.34 71.12)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1533,12 +1550,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "ab456a5f-1258-4b36-9e5e-cb7718038d02")
-	)
-	(junction
-		(at 101.6 71.12)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "b8f84125-9373-4150-a039-55c4c4f37f36")
 	)
 	(junction
 		(at 106.68 39.37)
@@ -1563,12 +1574,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "db90e85c-d870-4fcd-85d1-1035e4537b0e")
-	)
-	(junction
-		(at 88.9 71.12)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "ef4bed14-465d-4c00-b4d7-fa9c61d8e793")
 	)
 	(no_connect
 		(at 191.77 73.66)
@@ -1656,6 +1661,16 @@
 	)
 	(wire
 		(pts
+			(xy 113.03 90.17) (xy 137.16 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "330f399c-66bf-4c17-aec9-20f994161742")
+	)
+	(wire
+		(pts
 			(xy 50.8 71.12) (xy 57.15 71.12)
 		)
 		(stroke
@@ -1663,6 +1678,16 @@
 			(type default)
 		)
 		(uuid "33d826a1-c244-49d3-84bf-08d3fc0074a9")
+	)
+	(wire
+		(pts
+			(xy 107.95 76.2) (xy 107.95 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "378f9351-b256-41be-a730-066eefdcac91")
 	)
 	(wire
 		(pts
@@ -1746,33 +1771,23 @@
 	)
 	(wire
 		(pts
-			(xy 116.84 76.2) (xy 116.84 90.17)
+			(xy 116.84 71.12) (xy 113.03 71.12)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "7ba7cf69-1eee-4073-bc37-63ba73b76bac")
+		(uuid "82c4b77b-7151-44f1-85bd-19402dc66d64")
 	)
 	(wire
 		(pts
-			(xy 88.9 71.12) (xy 101.6 71.12)
+			(xy 116.84 76.2) (xy 107.95 76.2)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "7dfe38dc-8c31-45f0-9d18-32a184c2728b")
-	)
-	(wire
-		(pts
-			(xy 88.9 71.12) (xy 88.9 73.66)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "89177f09-3975-4816-b88e-ea342a1ba57b")
+		(uuid "844edceb-4027-4d5d-9d30-22c6d5050968")
 	)
 	(wire
 		(pts
@@ -1786,6 +1801,16 @@
 	)
 	(wire
 		(pts
+			(xy 113.03 71.12) (xy 113.03 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a0dd18ab-50ed-4193-a448-ab1bc23fdcd6")
+	)
+	(wire
+		(pts
 			(xy 175.26 71.12) (xy 180.34 71.12)
 		)
 		(stroke
@@ -1796,23 +1821,23 @@
 	)
 	(wire
 		(pts
-			(xy 116.84 90.17) (xy 137.16 90.17)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a52f59fa-fbc7-468e-bba0-7028e9946251")
-	)
-	(wire
-		(pts
-			(xy 74.93 71.12) (xy 88.9 71.12)
+			(xy 74.93 71.12) (xy 101.6 71.12)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "a566018c-7de8-44ce-8c1f-6d4a234d06c7")
+	)
+	(wire
+		(pts
+			(xy 107.95 71.12) (xy 101.6 71.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "af8cd797-8caf-4e4e-8c98-cb84bae56e32")
 	)
 	(wire
 		(pts
@@ -1853,16 +1878,6 @@
 			(type default)
 		)
 		(uuid "d4f5da51-9aea-454a-b91d-7424ac350e39")
-	)
-	(wire
-		(pts
-			(xy 101.6 71.12) (xy 116.84 71.12)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "dc1aa283-fc5a-4b89-9f85-ed3ba0d62574")
 	)
 	(wire
 		(pts
@@ -1923,16 +1938,6 @@
 			(justify left)
 		)
 		(uuid "0d8771d8-120b-4c42-9d6b-013c53595677")
-	)
-	(label "VBIAS"
-		(at 88.9 73.66 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left)
-		)
-		(uuid "0db4bb0a-26a6-4e18-ab51-56a2bdb5d9f2")
 	)
 	(label "VBIAS"
 		(at 74.93 67.31 0)
@@ -3662,7 +3667,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 88.9 81.28 0)
+		(at 88.9 101.6 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3672,7 +3677,7 @@
 		(dnp no)
 		(uuid "a3b3d9c8-40f7-49a4-80ec-97c9d2085e03")
 		(property "Reference" "#PWR06"
-			(at 88.9 83.82 0)
+			(at 88.9 104.14 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3683,7 +3688,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 88.9 82.55 0)
+			(at 88.9 102.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3694,7 +3699,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at -55.88 -19.05 0)
+			(at -55.88 1.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3705,7 +3710,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at -55.88 -19.05 0)
+			(at -55.88 1.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3716,7 +3721,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 88.9 81.28 0)
+			(at 88.9 101.6 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3739,7 +3744,7 @@
 	)
 	(symbol
 		(lib_id "Device:CP")
-		(at 88.9 77.47 0)
+		(at 88.9 97.79 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3749,7 +3754,7 @@
 		(dnp no)
 		(uuid "ab409295-ce36-4649-92f6-d00c0dadbd48")
 		(property "Reference" "Cbias"
-			(at 90.678 77.47 0)
+			(at 90.678 97.79 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3760,7 +3765,7 @@
 			)
 		)
 		(property "Value" "47uF"
-			(at 90.678 74.93 0)
+			(at 90.678 95.25 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3771,7 +3776,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:CP_Elec_5x5.8"
-			(at -55.88 -19.05 0)
+			(at -55.88 1.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3782,7 +3787,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at -55.88 -19.05 0)
+			(at -55.88 1.27 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3793,7 +3798,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 88.9 77.47 0)
+			(at 88.9 97.79 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
