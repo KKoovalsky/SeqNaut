@@ -161,21 +161,33 @@ private:
         for (auto& [node, deg] : inDegree)
             if (deg == 0) q.push(node);
 
+        // 2. Perform the actual sorting.
         std::vector<AudioNode*> sorted;
         while (!q.empty()) {
             auto* node = q.front(); q.pop();
+            // 3. Nodes that are in the queue, have in-degree equal 0. This means that all the dependencies (the node
+            //    that must be processed before) are already processed. We can push it to the sorted container.
             sorted.push_back(node);
-            // For each node that depends on the current node ...
+            // 4. Iterate over each node that depends on the current node (iterating over the std::set).
             for (auto* dst : adj[node])
             {
-                // ... TODO: DO WHAT?
-                --inDegree[dst];
+                // 5. We have just processed (Ad.3 - above this loop) the node that this destination node depends on.
+                //    We can safely decrease the in-degree counter for this destination node.
+                auto &inDegreeDst{inDegree[dst]};
+                --inDegreeDst;
 
-                if (--inDegree[dst] == 0) q.push(dst);
+                // 6. No dependencies left? Push to the queue.
+                if (inDegreeDst == 0) 
+                    q.push(dst);
             }
         }
 
-        if (sorted.size() != inDegree.size())
+        // 7. In case of a cycle: A → B → C → A   (cycle)
+        //      - A depends on C, B depends on A, C depends on B
+        //      - none of them ever reaches in-degree 0
+        //      - none of them ever enters the queue
+        //      - none of them ends up in sorted
+        if (auto numNodes{inDegree.size()}; sorted.size() != numNodes)
             throw std::runtime_error("Patch: cycle detected in audio graph");
 
         // Build NodeEntry array — std::find replaces the nodeIdx map;
