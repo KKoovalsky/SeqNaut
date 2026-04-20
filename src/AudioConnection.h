@@ -24,6 +24,15 @@ class [[nodiscard]] AudioConnection {
 public:
 
     // ── Builder ───────────────────────────────────────────────────────────────
+    //
+    // TODO: Minimise rebuild() invocations when wiring multiple connections at
+    //   once.  Each connect() call currently triggers a full rebuild().  A
+    //   better approach: disallow Builder as an lvalue (delete copy/assign,
+    //   make chaining methods &&-qualified so they are only callable on
+    //   temporaries), collect all pending ConnectionRecords while the builder
+    //   is alive, and commit them all — triggering a single rebuild() — either
+    //   on an explicit flush() call or on destruction.  A PatchBuilder wrapper
+    //   (rather than extending AudioConnection::Builder) may be a cleaner fit.
 
     class Builder {
     public:
