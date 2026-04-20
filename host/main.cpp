@@ -1,10 +1,12 @@
-#include "TransientDetector.h"
-
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 
+#include "AudioConnection.h"
+#include "BufferSource.h"
+#include "TransientDetector.h"
+#include "WavWriter.h"
+
 #include <cstdio>
-#include <cstring>
 #include <string>
 #include <vector>
 
@@ -12,18 +14,20 @@
 
 class TimestampLogger : public Notifiable<TransientDetector::TransientDetected> {
 public:
-    explicit TimestampLogger(float sampleRate) : sampleRate_(sampleRate) {}
+    explicit TimestampLogger(float sampleRate) : _sampleRate(sampleRate) {}
 
     void notify(const TransientDetector::TransientDetected& e) override {
-        const double ms = (blockOffset_ + static_cast<double>(e.sampleIndex)) / sampleRate_ * 1000.0;
-        std::printf("TRIGGER  %8.2f ms  env=%.4f  d=%.4f\n", ms, e.envelopeLevel, e.derivative);
+        const double ms = (_blockOffset + static_cast<double>(e.sampleIndex))
+                          / _sampleRate * 1000.0;
+        std::printf("TRIGGER  %8.2f ms  env=%.4f  d=%.4f\n",
+                    ms, e.envelopeLevel, e.derivative);
     }
 
-    void setBlockOffset(size_t offset) { blockOffset_ = offset; }
+    void setBlockOffset(size_t offset) { _blockOffset = offset; }
 
 private:
-    float  sampleRate_;
-    size_t blockOffset_ = 0;
+    float  _sampleRate;
+    size_t _blockOffset = 0;
 };
 
 // ── WAV loading ───────────────────────────────────────────────────────────────
@@ -45,7 +49,6 @@ static std::vector<float> loadMono(const char* path, unsigned int& outSampleRate
     if (wav.channels == 1)
         return interleaved;
 
-    // Downmix to mono
     const float scale = 1.f / static_cast<float>(wav.channels);
     std::vector<float> mono(totalFrames, 0.f);
     for (size_t i = 0; i < totalFrames; ++i)
@@ -59,13 +62,16 @@ static std::vector<float> loadMono(const char* path, unsigned int& outSampleRate
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::fprintf(stderr, "usage: transient_detector <file.wav> [hpCutoffHz] [threshold] [cooldownMs]\n");
+        std::fprintf(stderr,
+            "usage: transient_detector <file.wav> [hpCutoffHz] [threshold] [cooldownMs]\n");
         return 1;
     }
 
     unsigned int sampleRate = 44100;
     const std::vector<float> samples = loadMono(argv[1], sampleRate);
     if (samples.empty()) return 1;
+
+    constexpr size_t BLOCK = 128;
 
     TransientDetector::Config cfg;
     cfg.sampleRate = static_cast<float>(sampleRate);
@@ -82,22 +88,32 @@ int main(int argc, char** argv) {
                 cfg.hpCutoffHz, cfg.attackMs, cfg.releaseMs,
                 cfg.threshold, cfg.noiseFloor, cfg.cooldownMs);
 
+    // ── Build graph ───────────────────────────────────────────────────────────
+
+    Patch patch(BLOCK, cfg.sampleRate);
+
     TimestampLogger   logger(cfg.sampleRate);
+    BufferSource      source(samples, BLOCK);
     TransientDetector detector(logger, cfg);
+    WavWriter         envWriter("envelope.wav", cfg.sampleRate);
 
-    // Process in 128-sample blocks
-    constexpr size_t BLOCK = 128;
-    const size_t totalSamples = samples.size();
+    auto c1 = AudioConnection::from(source)
+                              .to(detector)
+                              .in(patch)
+                              .connect();
 
-    for (size_t offset = 0; offset < totalSamples; offset += BLOCK) {
-        const size_t blockLen = std::min(BLOCK, totalSamples - offset);
+    auto c2 = AudioConnection::from(detector).output(0)
+                              .to(envWriter) .input(0)
+                              .in(patch)
+                              .connect();
 
-        AudioBufferView inView(samples.data() + offset, blockLen);
-        std::array<AudioBufferView, 1> busViews { inView };
-        AudioBusView inputBus(busViews);
+    // ── Run ───────────────────────────────────────────────────────────────────
 
-        logger.setBlockOffset(offset);
-        detector.process(inputBus);
+    size_t blockOffset = 0;
+    while (!source.done()) {
+        logger.setBlockOffset(blockOffset);
+        patch.process();
+        blockOffset += BLOCK;
     }
 
     return 0;
