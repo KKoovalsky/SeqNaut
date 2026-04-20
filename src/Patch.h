@@ -71,9 +71,9 @@ public:
                 } else {
                     inputView = silenceView;
                 }
-
-                entry.output = entry.node->process(AudioBusView(entry.inputViews));
             }
+
+            entry.output = entry.node->process(AudioBusView(entry.inputViews));
         }
     }
 
