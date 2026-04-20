@@ -8,6 +8,6 @@ static constexpr uint32_t PPQN = 48;
 
 // Pool sizes — increase if you need more of each
 static constexpr uint8_t MAX_CLOCKABLES = 8;
-static constexpr uint8_t MAX_TRACKS     = 8;
-static constexpr uint8_t MAX_STEPS      = 32;
-static constexpr uint8_t MAX_PR_NOTES   = 64;
+static constexpr uint8_t MAX_TRACKS = 8;
+static constexpr uint8_t MAX_STEPS = 32;
+static constexpr uint8_t MAX_PR_NOTES = 64;

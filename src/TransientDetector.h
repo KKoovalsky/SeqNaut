@@ -1,13 +1,13 @@
 #pragma once
 
-#include "AudioNode.h"
-#include "Notifiable.h"
-#include "Filters/svf.h"
-
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
+
+#include "AudioNode.h"
+#include "Filters/svf.h"
+#include "Notifiable.h"
 
 // ── TransientDetector ─────────────────────────────────────────────────────────
 //
@@ -44,68 +44,72 @@
 
 class TransientDetector : public AudioNode {
 public:
-
     // ── Config ────────────────────────────────────────────────────────────────
 
     struct Config {
-        float sampleRate      = 44100.f;
-        float hpCutoffHz      = 1200.f;  // detection-path high-pass cutoff
-        float fastAttackMs    = 0.2f;    // fast envelope attack time
-        float fastReleaseMs   = 30.f;    // fast envelope release time
-        float slowMs          = 50.f;    // slow background envelope time constant
-        float bgMs            = 200.f;   // attack metric background tracker time constant
-        float thresholdK      = 1.5f;    // adaptive threshold multiplier
+        float sampleRate = 44100.f;
+        float hpCutoffHz = 1200.f;       // detection-path high-pass cutoff
+        float fastAttackMs = 0.2f;       // fast envelope attack time
+        float fastReleaseMs = 30.f;      // fast envelope release time
+        float slowMs = 50.f;             // slow background envelope time constant
+        float bgMs = 200.f;              // attack metric background tracker time constant
+        float thresholdK = 1.5f;         // adaptive threshold multiplier
         float thresholdOffset = 0.002f;  // minimum threshold margin (prevents collapse in silence)
-        float noiseFloor      = 0.005f;  // minimum fast envelope level to qualify
-        float cooldownMs      = 30.f;    // refractory period after a trigger
+        float noiseFloor = 0.005f;       // minimum fast envelope level to qualify
+        float cooldownMs = 30.f;         // refractory period after a trigger
     };
 
     // ── Event ─────────────────────────────────────────────────────────────────
 
     struct TransientDetected {
-        size_t sampleIndex;   ///< Sample offset within the current block.
-        float  fastEnv;       ///< Fast envelope value at trigger moment.
-        float  attackMetric;  ///< fast - slow at trigger moment; indicates attack sharpness.
+        size_t sampleIndex;  ///< Sample offset within the current block.
+        float fastEnv;       ///< Fast envelope value at trigger moment.
+        float attackMetric;  ///< fast - slow at trigger moment; indicates attack sharpness.
     };
 
     // ── Construction ──────────────────────────────────────────────────────────
 
-    explicit TransientDetector(Notifiable<TransientDetected>& listener)
-        : TransientDetector(listener, Config{}) {}
+    explicit TransientDetector(Notifiable<TransientDetected>& listener) : TransientDetector(listener, Config{}) {}
 
     TransientDetector(Notifiable<TransientDetected>& listener, const Config& cfg)
-        : _cfg(cfg)
-        , _listener(listener)
-        , _outputBus(3, AudioBuffer(128, 0.f))
-    {
+        : _cfg(cfg),
+          _listener(listener),
+          _outputBus(3, AudioBuffer(128, 0.f)) {
         _hpf.Init(_cfg.sampleRate);
         _hpf.SetFreq(_cfg.hpCutoffHz);
         _hpf.SetRes(0.f);
         _hpf.SetDrive(0.f);
 
-        _fastAttackCoeff  = coeff(_cfg.fastAttackMs);
+        _fastAttackCoeff = coeff(_cfg.fastAttackMs);
         _fastReleaseCoeff = coeff(_cfg.fastReleaseMs);
-        _slowCoeff        = coeff(_cfg.slowMs);
-        _bgCoeff          = coeff(_cfg.bgMs);
-        _cooldownSamples  = static_cast<int>(_cfg.cooldownMs * 0.001f * _cfg.sampleRate);
+        _slowCoeff = coeff(_cfg.slowMs);
+        _bgCoeff = coeff(_cfg.bgMs);
+        _cooldownSamples = static_cast<int>(_cfg.cooldownMs * 0.001f * _cfg.sampleRate);
         _transientThreshold = static_cast<int>(_cooldownSamples * 0.9f);
     }
 
     // ── AudioNode ─────────────────────────────────────────────────────────────
 
-    size_t numInputs()  const override { return 1; }
-    size_t numOutputs() const override { return 3; }
+    size_t numInputs() const override {
+        return 1;
+    }
+    size_t numOutputs() const override {
+        return 3;
+    }
 
     AudioBusView process(AudioBusView inputs) override {
-        const AudioBufferView in  = inputs[0];
-        const size_t          len = in.size();
+        const AudioBufferView in = inputs[0];
+        const size_t len = in.size();
 
         AudioBuffer& fastOut = _outputBus[0];
         AudioBuffer& slowOut = _outputBus[1];
         AudioBuffer& gateOut = _outputBus[2];
-        if (fastOut.size() != len) fastOut.resize(len);
-        if (slowOut.size() != len) slowOut.resize(len);
-        if (gateOut.size() != len) gateOut.resize(len);
+        if (fastOut.size() != len)
+            fastOut.resize(len);
+        if (slowOut.size() != len)
+            slowOut.resize(len);
+        if (gateOut.size() != len)
+            gateOut.resize(len);
 
         for (size_t n = 0; n < len; ++n) {
             // 1. High-pass filter — emphasise pick attack, suppress low-freq body
@@ -134,16 +138,19 @@ public:
                 --_cooldownCounter;
             } else if (attack > threshold && _fastEnv > _cfg.noiseFloor) {
                 _cooldownCounter = _cooldownSamples;
-                _listener.notify({ n, _fastEnv, attack });
+                _listener.notify({n, _fastEnv, attack});
             }
 
             // 8. Gate output
             //   +1.0 — first 10% of cooldown (transient phase)
             //   -1.0 — remaining 90%         (refractory phase)
             //    0.0 — idle
-            if      (_cooldownCounter > _transientThreshold) gateOut[n] =  1.f;
-            else if (_cooldownCounter > 0)                   gateOut[n] = -1.f;
-            else                                             gateOut[n] =  0.f;
+            if (_cooldownCounter > _transientThreshold)
+                gateOut[n] = 1.f;
+            else if (_cooldownCounter > 0)
+                gateOut[n] = -1.f;
+            else
+                gateOut[n] = 0.f;
 
             fastOut[n] = _fastEnv;
             slowOut[n] = _slowEnv;
@@ -160,24 +167,24 @@ private:
         return 1.f - std::exp(-1.f / (ms * 0.001f * _cfg.sampleRate));
     }
 
-    Config       _cfg;
+    Config _cfg;
     daisysp::Svf _hpf;
 
-    float _fastEnv   = 0.f;
-    float _slowEnv   = 0.f;
-    float _attackBg  = 0.f;
+    float _fastEnv = 0.f;
+    float _slowEnv = 0.f;
+    float _attackBg = 0.f;
 
-    float _fastAttackCoeff  = 0.f;
+    float _fastAttackCoeff = 0.f;
     float _fastReleaseCoeff = 0.f;
-    float _slowCoeff        = 0.f;
-    float _bgCoeff          = 0.f;
+    float _slowCoeff = 0.f;
+    float _bgCoeff = 0.f;
 
-    int _cooldownSamples    = 0;
-    int _cooldownCounter    = 0;
+    int _cooldownSamples = 0;
+    int _cooldownCounter = 0;
     int _transientThreshold = 0;
 
-    AudioBus                       _outputBus;
-    std::array<AudioBufferView, 3> _outputView {};
+    AudioBus _outputBus;
+    std::array<AudioBufferView, 3> _outputView{};
 
     Notifiable<TransientDetected>& _listener;
 };

@@ -1,14 +1,13 @@
 #define DR_WAV_IMPLEMENTATION
-#include "dr_wav.h"
+#include <cstdio>
+#include <filesystem>
+#include <string>
 
 #include "AudioConnection.h"
 #include "TransientDetector.h"
 #include "WavReader.h"
 #include "WavWriter.h"
-
-#include <cstdio>
-#include <filesystem>
-#include <string>
+#include "dr_wav.h"
 
 // ── TimestampLogger ───────────────────────────────────────────────────────────
 
@@ -17,16 +16,16 @@ public:
     explicit TimestampLogger(float sampleRate) : _sampleRate(sampleRate) {}
 
     void notify(const TransientDetector::TransientDetected& e) override {
-        const double ms = (_blockOffset + static_cast<double>(e.sampleIndex))
-                          / _sampleRate * 1000.0;
-        std::printf("TRIGGER  %8.2f ms  fast=%.4f  attack=%.4f\n",
-                    ms, e.fastEnv, e.attackMetric);
+        const double ms = (_blockOffset + static_cast<double>(e.sampleIndex)) / _sampleRate * 1000.0;
+        std::printf("TRIGGER  %8.2f ms  fast=%.4f  attack=%.4f\n", ms, e.fastEnv, e.attackMetric);
     }
 
-    void setBlockOffset(size_t offset) { _blockOffset = offset; }
+    void setBlockOffset(size_t offset) {
+        _blockOffset = offset;
+    }
 
 private:
-    float  _sampleRate;
+    float _sampleRate;
     size_t _blockOffset = 0;
 };
 
@@ -34,8 +33,7 @@ private:
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::fprintf(stderr,
-            "usage: transient_detector <file.wav> [hpCutoffHz] [threshold] [cooldownMs]\n");
+        std::fprintf(stderr, "usage: transient_detector <file.wav> [hpCutoffHz] [threshold] [cooldownMs]\n");
         return 1;
     }
 
@@ -46,48 +44,39 @@ int main(int argc, char** argv) {
 
     TransientDetector::Config cfg;
     cfg.sampleRate = source.sampleRate();
-    if (argc >= 3) cfg.hpCutoffHz = std::stof(argv[2]);
-    if (argc >= 4) cfg.thresholdK = std::stof(argv[3]);
-    if (argc >= 5) cfg.cooldownMs = std::stof(argv[4]);
+    if (argc >= 3)
+        cfg.hpCutoffHz = std::stof(argv[2]);
+    if (argc >= 4)
+        cfg.thresholdK = std::stof(argv[3]);
+    if (argc >= 5)
+        cfg.cooldownMs = std::stof(argv[4]);
 
     std::printf("File      : %s\n", argv[1]);
     std::printf("SampleRate: %.0f Hz\n", cfg.sampleRate);
-    std::printf("Config    : hp=%.0f Hz"
-                "  fast=%.1f/%.1f ms  slow=%.0f ms  bg=%.0f ms"
-                "  k=%.2f  offset=%.4f  floor=%.4f  cooldown=%.0f ms\n\n",
-                cfg.hpCutoffHz,
-                cfg.fastAttackMs, cfg.fastReleaseMs, cfg.slowMs, cfg.bgMs,
-                cfg.thresholdK, cfg.thresholdOffset, cfg.noiseFloor, cfg.cooldownMs);
+    std::printf(
+        "Config    : hp=%.0f Hz"
+        "  fast=%.1f/%.1f ms  slow=%.0f ms  bg=%.0f ms"
+        "  k=%.2f  offset=%.4f  floor=%.4f  cooldown=%.0f ms\n\n",
+        cfg.hpCutoffHz, cfg.fastAttackMs, cfg.fastReleaseMs, cfg.slowMs, cfg.bgMs, cfg.thresholdK, cfg.thresholdOffset,
+        cfg.noiseFloor, cfg.cooldownMs);
 
     // ── Build graph ───────────────────────────────────────────────────────────
 
     Patch patch(BLOCK, cfg.sampleRate);
 
-    TimestampLogger   logger(cfg.sampleRate);
+    TimestampLogger logger(cfg.sampleRate);
     TransientDetector detector(logger, cfg);
-    WavWriter         fastEnvWriter(stem + "_fast_env.wav", cfg.sampleRate);
-    WavWriter         slowEnvWriter(stem + "_slow_env.wav", cfg.sampleRate);
-    WavWriter         gateWriter(stem + "_gate.wav",        cfg.sampleRate);
+    WavWriter fastEnvWriter(stem + "_fast_env.wav", cfg.sampleRate);
+    WavWriter slowEnvWriter(stem + "_slow_env.wav", cfg.sampleRate);
+    WavWriter gateWriter(stem + "_gate.wav", cfg.sampleRate);
 
-    auto c1 = AudioConnection::from(source)
-                              .to(detector)
-                              .in(patch)
-                              .connect();
+    auto c1 = AudioConnection::from(source).to(detector).in(patch).connect();
 
-    auto c2 = AudioConnection::from(detector).output(0)
-                              .to(fastEnvWriter).input(0)
-                              .in(patch)
-                              .connect();
+    auto c2 = AudioConnection::from(detector).output(0).to(fastEnvWriter).input(0).in(patch).connect();
 
-    auto c3 = AudioConnection::from(detector).output(1)
-                              .to(slowEnvWriter).input(0)
-                              .in(patch)
-                              .connect();
+    auto c3 = AudioConnection::from(detector).output(1).to(slowEnvWriter).input(0).in(patch).connect();
 
-    auto c4 = AudioConnection::from(detector).output(2)
-                              .to(gateWriter)   .input(0)
-                              .in(patch)
-                              .connect();
+    auto c4 = AudioConnection::from(detector).output(2).to(gateWriter).input(0).in(patch).connect();
 
     // ── Run ───────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,4 @@
 #pragma once
-#include "AudioNode.h"
-
 #include <algorithm>
 #include <cstddef>
 #include <queue>
@@ -8,6 +6,8 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
+
+#include "AudioNode.h"
 
 using ConnectionId = size_t;
 class AudioConnection;
@@ -37,15 +37,16 @@ class AudioConnection;
 
 class Patch {
 public:
-    Patch(size_t blockSize, float sampleRate)
-        : _blockSize(blockSize)
-        , _sampleRate(sampleRate)
-    {
+    Patch(size_t blockSize, float sampleRate) : _blockSize(blockSize), _sampleRate(sampleRate) {
         _silence.assign(blockSize, 0.f);
     }
 
-    float  sampleRate() const { return _sampleRate; }
-    size_t blockSize()  const { return _blockSize; }
+    float sampleRate() const {
+        return _sampleRate;
+    }
+    size_t blockSize() const {
+        return _blockSize;
+    }
 
     // ── Graph execution ───────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ public:
         // to the inputs, after a node has been processed.
         for (size_t i = 0; i < _sorted.size(); ++i) {
             auto& entry = _sorted[i];
-            
+
             // Iterate over all input sources for that node. At this point, these nodes have already been processed.
             // Note that for a node that has no inputs, this loop is skipped, therefore we process it straight-away.
             // This loop takes the corresponding connected node output, which is connected to a specific input
@@ -78,26 +79,23 @@ public:
     }
 
 private:
-
     friend class AudioConnection;
 
-    ConnectionId addConnection(AudioNode& src, size_t srcOut,
-                               AudioNode& dst, size_t dstIn) {
+    ConnectionId addConnection(AudioNode& src, size_t srcOut, AudioNode& dst, size_t dstIn) {
         if (srcOut >= src.numOutputs())
             throw std::out_of_range("Patch: srcOut exceeds numOutputs");
         if (dstIn >= dst.numInputs())
             throw std::out_of_range("Patch: dstIn exceeds numInputs");
         const ConnectionId id = _nextId++;
-        _connections.push_back({ id, &src, srcOut, &dst, dstIn });
+        _connections.push_back({id, &src, srcOut, &dst, dstIn});
         rebuild();
         return id;
     }
 
     void removeConnection(ConnectionId id) {
-        _connections.erase(
-            std::remove_if(_connections.begin(), _connections.end(),
-                [id](const ConnectionRecord& c) { return c.id == id; }),
-            _connections.end());
+        _connections.erase(std::remove_if(_connections.begin(), _connections.end(),
+                                          [id](const ConnectionRecord& c) { return c.id == id; }),
+                           _connections.end());
         rebuild();
     }
 
@@ -105,38 +103,38 @@ private:
 
     struct ConnectionRecord {
         ConnectionId id;
-        AudioNode*   src;
-        size_t       srcOut;
-        AudioNode*   dst;
-        size_t       dstIn;
+        AudioNode* src;
+        size_t srcOut;
+        AudioNode* dst;
+        size_t dstIn;
     };
 
     /// Describes the wiring for one input channel of a node.
     /// Built once in rebuild(); never mutated during process().
     struct InputSource {
-        size_t nodeEntryIdx  = 0;  ///< Index into _sorted of the upstream node.
+        size_t nodeEntryIdx = 0;      ///< Index into _sorted of the upstream node.
         size_t outputChannelIdx = 0;  ///< Which output channel of that upstream node to read.
-        bool   connected = false;  ///< False means no cable is patched; process() feeds silence instead.
+        bool connected = false;       ///< False means no cable is patched; process() feeds silence instead.
     };
 
     struct NodeEntry {
-        AudioNode*                   node;
-        std::vector<AudioBufferView> inputViews;    // pre-allocated; filled each process().
-                                                    // Could be a local temporary, but that would
-                                                    // heap-allocate on every block — forbidden in audio path.
-        std::vector<InputSource>     inputSources;  // pre-computed wiring
-        AudioBusView                 output;        // filled each process() with node's return value
+        AudioNode* node;
+        std::vector<AudioBufferView> inputViews;  // pre-allocated; filled each process().
+                                                  // Could be a local temporary, but that would
+                                                  // heap-allocate on every block — forbidden in audio path.
+        std::vector<InputSource> inputSources;    // pre-computed wiring
+        AudioBusView output;                      // filled each process() with node's return value
     };
 
     // ── State ─────────────────────────────────────────────────────────────────
 
     size_t _blockSize;
-    float  _sampleRate;
+    float _sampleRate;
 
-    ConnectionId                  _nextId = 0;
+    ConnectionId _nextId = 0;
     std::vector<ConnectionRecord> _connections;
-    std::vector<NodeEntry>        _sorted;
-    AudioBuffer                   _silence;
+    std::vector<NodeEntry> _sorted;
+    AudioBuffer _silence;
 
     // ── Topology rebuild ──────────────────────────────────────────────────────
     //
@@ -150,12 +148,12 @@ private:
         //    node depends directly on. It's the number of nodes that must be processed before this one, but not all
         //    the nodes that must be processed, only the direct dependencies.
         // 2. Adjacency set contains connections from a specific node, to all the direct downstream nodes. It's a map
-        //    that stores sets of nodes each that depend on that specific node. std::set gives node-level edge 
+        //    that stores sets of nodes each that depend on that specific node. std::set gives node-level edge
         //    deduplication for free.
-        // 3. It might happen that one node has e.g. two outputs, and another node two inputs. When all the outputs 
-        //    of the source node are connected to the same node, then it counts as one edge. Shortly: channel 
+        // 3. It might happen that one node has e.g. two outputs, and another node two inputs. When all the outputs
+        //    of the source node are connected to the same node, then it counts as one edge. Shortly: channel
         //    connections between the same two nodes count as one edge.
-        std::unordered_map<AudioNode*, int>                  inDegree;
+        std::unordered_map<AudioNode*, int> inDegree;
         std::unordered_map<AudioNode*, std::set<AudioNode*>> adj;
 
         for (auto& c : _connections) {
@@ -166,7 +164,7 @@ private:
             auto [_, isInserted] = adj[c.src].insert(c.dst);
             // For the destination node, if there was no connection found earlier for these nodes, we can safely
             // increase the in-degree count - the number of nodes the destination node depends on.
-            if(isInserted)
+            if (isInserted)
                 inDegree[c.dst]++;
         }
 
@@ -174,25 +172,26 @@ private:
         // 1. Nodes with no dependencies are already sorted, and ready to be processed first.
         std::queue<AudioNode*> q;
         for (auto& [node, deg] : inDegree)
-            if (deg == 0) q.push(node);
+            if (deg == 0)
+                q.push(node);
 
         // 2. Perform the actual sorting.
         std::vector<AudioNode*> sorted;
         while (!q.empty()) {
-            auto* node = q.front(); q.pop();
+            auto* node = q.front();
+            q.pop();
             // 3. Nodes that are in the queue, have in-degree equal 0. This means that all the dependencies (the node
             //    that must be processed before) are already processed. We can push it to the sorted container.
             sorted.push_back(node);
             // 4. Iterate over each node that depends on the current node (iterating over the std::set).
-            for (auto* dst : adj[node])
-            {
+            for (auto* dst : adj[node]) {
                 // 5. We have just processed (Ad.3 - above this loop) the node that this destination node depends on.
                 //    We can safely decrease the in-degree counter for this destination node.
-                auto &inDegreeDst{inDegree[dst]};
+                auto& inDegreeDst{inDegree[dst]};
                 --inDegreeDst;
 
                 // 6. No dependencies left? Push to the queue.
-                if (inDegreeDst == 0) 
+                if (inDegreeDst == 0)
                     q.push(dst);
             }
         }
@@ -210,7 +209,7 @@ private:
         _sorted.resize(sorted.size());
         for (size_t i = 0; i < sorted.size(); ++i) {
             auto& entry = _sorted[i];
-            entry.node  = sorted[i];
+            entry.node = sorted[i];
             const size_t ni = sorted[i]->numInputs();
             entry.inputViews.resize(ni);
             entry.inputSources.assign(ni, {});
@@ -222,13 +221,11 @@ private:
                     auto it = std::find(sorted.begin(), sorted.end(), c.src);
                     // Update the corresponding input source: my input channel is the connection's destination channel
                     entry.inputSources[c.dstIn] = {
-                        .nodeEntryIdx  = static_cast<size_t>(std::distance(sorted.begin(), it)),
+                        .nodeEntryIdx = static_cast<size_t>(std::distance(sorted.begin(), it)),
                         .outputChannelIdx = c.srcOut,
-                        .connected = true
-                    };
+                        .connected = true};
                 }
             }
         }
-
     }
 };

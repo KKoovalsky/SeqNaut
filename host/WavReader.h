@@ -1,11 +1,11 @@
 #pragma once
-#include "AudioNode.h"
-#include "dr_wav.h"
-
 #include <array>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+#include "AudioNode.h"
+#include "dr_wav.h"
 
 // ── WavReader ─────────────────────────────────────────────────────────────────
 //
@@ -22,9 +22,9 @@
 class WavReader : public AudioNode {
 public:
     WavReader(const std::string& path, size_t blockSize)
-        : _blockSize(blockSize)
-        , _outputBus(1, AudioBuffer(blockSize, 0.f))
-        , _interleaved(blockSize * 1, 0.f)  // resized after open when channels are known
+        : _blockSize(blockSize),
+          _outputBus(1, AudioBuffer(blockSize, 0.f)),
+          _interleaved(blockSize * 1, 0.f)  // resized after open when channels are known
     {
         if (!drwav_init_file(&_wav, path.c_str(), nullptr))
             throw std::runtime_error("WavReader: cannot open '" + path + "'");
@@ -35,13 +35,19 @@ public:
         _outputView[0] = AudioBufferView(_outputBus[0]);
     }
 
-    ~WavReader() { close(); }
+    ~WavReader() {
+        close();
+    }
 
-    WavReader(const WavReader&)            = delete;
+    WavReader(const WavReader&) = delete;
     WavReader& operator=(const WavReader&) = delete;
 
-    float  sampleRate() const { return static_cast<float>(_wav.sampleRate); }
-    bool   done()       const { return !_open; }
+    float sampleRate() const {
+        return static_cast<float>(_wav.sampleRate);
+    }
+    bool done() const {
+        return !_open;
+    }
 
     void close() {
         if (_open) {
@@ -52,12 +58,15 @@ public:
 
     // ── AudioNode ─────────────────────────────────────────────────────────────
 
-    size_t numInputs()  const override { return 0; }
-    size_t numOutputs() const override { return 1; }
+    size_t numInputs() const override {
+        return 0;
+    }
+    size_t numOutputs() const override {
+        return 1;
+    }
 
     AudioBusView process(AudioBusView) override {
-        const drwav_uint64 framesRead = drwav_read_pcm_frames_f32(
-            &_wav, _blockSize, _interleaved.data());
+        const drwav_uint64 framesRead = drwav_read_pcm_frames_f32(&_wav, _blockSize, _interleaved.data());
 
         if (framesRead == 0) {
             close();
@@ -66,8 +75,7 @@ public:
         }
 
         if (_channels == 1) {
-            std::copy(_interleaved.begin(),
-                      _interleaved.begin() + static_cast<ptrdiff_t>(framesRead),
+            std::copy(_interleaved.begin(), _interleaved.begin() + static_cast<ptrdiff_t>(framesRead),
                       _outputBus[0].begin());
         } else {
             const float scale = 1.f / static_cast<float>(_channels);
@@ -80,18 +88,17 @@ public:
         }
 
         if (framesRead < _blockSize)
-            std::fill(_outputBus[0].begin() + static_cast<ptrdiff_t>(framesRead),
-                      _outputBus[0].end(), 0.f);
+            std::fill(_outputBus[0].begin() + static_cast<ptrdiff_t>(framesRead), _outputBus[0].end(), 0.f);
 
         return AudioBusView(_outputView);
     }
 
 private:
-    drwav                          _wav;
-    bool                           _open     = false;
-    unsigned                       _channels = 1;
-    size_t                         _blockSize;
-    AudioBus                       _outputBus;
-    std::array<AudioBufferView, 1> _outputView {};
-    std::vector<float>             _interleaved;
+    drwav _wav;
+    bool _open = false;
+    unsigned _channels = 1;
+    size_t _blockSize;
+    AudioBus _outputBus;
+    std::array<AudioBufferView, 1> _outputView{};
+    std::vector<float> _interleaved;
 };

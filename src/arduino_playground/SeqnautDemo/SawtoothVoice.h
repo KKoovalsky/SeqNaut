@@ -1,5 +1,6 @@
 #pragma once
 #include <Audio.h>
+
 #include "IInstrument.h"
 
 // Adapter: AudioSynthWaveform × IInstrument.
@@ -16,7 +17,6 @@
 //   roll.setInstrument(voice);
 
 struct SawtoothVoice : public AudioSynthWaveform, public IInstrument {
-
     SawtoothVoice() {
         begin(WAVEFORM_BANDLIMIT_SAWTOOTH);
         amplitude(0.0f);
@@ -33,7 +33,6 @@ struct SawtoothVoice : public AudioSynthWaveform, public IInstrument {
 
 private:
     static float midiToHz(uint8_t note) {
-        return 440.0f * powf(2.0f,
-            static_cast<float>(static_cast<int8_t>(note - 69)) / 12.0f);
+        return 440.0f * powf(2.0f, static_cast<float>(static_cast<int8_t>(note - 69)) / 12.0f);
     }
 };

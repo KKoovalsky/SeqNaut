@@ -1,9 +1,9 @@
 #pragma once
-#include "IInstrument.h"
-#include "Synthesis/oscillator.h"
-
 #include <cmath>
 #include <cstdint>
+
+#include "IInstrument.h"
+#include "Synthesis/oscillator.h"
 
 // PolySineVoice — 8-voice polyphonic sine oscillator bank.
 //
@@ -36,7 +36,7 @@ public:
 
     void noteOn(uint8_t pitch, uint8_t velocity) override {
         const int slot = findFreeVoice();
-        voices_[slot] = { pitch, true, allocTick_++ };
+        voices_[slot] = {pitch, true, allocTick_++};
         oscillators_[slot].SetFreq(midiToHz(pitch));
         oscillators_[slot].SetAmp(velocity / 127.0f);
     }
@@ -66,29 +66,30 @@ public:
 
 private:
     struct VoiceSlot {
-        uint8_t  pitch  = 0;
-        bool     active = false;
-        uint32_t born   = 0;   // allocTick_ at noteOn — used for oldest-note stealing
+        uint8_t pitch = 0;
+        bool active = false;
+        uint32_t born = 0;  // allocTick_ at noteOn — used for oldest-note stealing
     };
 
     daisysp::Oscillator oscillators_[NUM_VOICES];
-    VoiceSlot           voices_[NUM_VOICES];
-    uint32_t            allocTick_ = 0;
+    VoiceSlot voices_[NUM_VOICES];
+    uint32_t allocTick_ = 0;
 
     // Returns index of a free slot, or the oldest active voice.
     int findFreeVoice() const {
         for (int i = 0; i < NUM_VOICES; ++i)
-            if (!voices_[i].active) return i;
+            if (!voices_[i].active)
+                return i;
 
         // All slots busy — steal oldest note.
         int oldest = 0;
         for (int i = 1; i < NUM_VOICES; ++i)
-            if (voices_[i].born < voices_[oldest].born) oldest = i;
+            if (voices_[i].born < voices_[oldest].born)
+                oldest = i;
         return oldest;
     }
 
     static float midiToHz(uint8_t note) {
-        return 440.0f * std::pow(2.0f,
-            static_cast<float>(static_cast<int8_t>(note - 69)) / 12.0f);
+        return 440.0f * std::pow(2.0f, static_cast<float>(static_cast<int8_t>(note - 69)) / 12.0f);
     }
 };

@@ -1,8 +1,9 @@
 #pragma once
 #include <chrono>
-#include "SeqConfig.h"
+
 #include "IClockable.h"
 #include "ITimeProvider.h"
+#include "SeqConfig.h"
 
 class MasterClock;
 
@@ -18,16 +19,15 @@ public:
     ~ClockConnection();
     ClockConnection(ClockConnection&& o) noexcept;
     ClockConnection& operator=(ClockConnection&& o) noexcept;
-    ClockConnection(const ClockConnection&)            = delete;
+    ClockConnection(const ClockConnection&) = delete;
     ClockConnection& operator=(const ClockConnection&) = delete;
 
 private:
-    ClockConnection(MasterClock& clock, IClockable& clockable)
-        : _clock(&clock), _clockable(&clockable) {}
+    ClockConnection(MasterClock& clock, IClockable& clockable) : _clock(&clock), _clockable(&clockable) {}
 
     friend class MasterClock;
     MasterClock* _clock;
-    IClockable*  _clockable;
+    IClockable* _clockable;
 };
 
 // ── MasterClock ───────────────────────────────────────────────────────────────
@@ -40,19 +40,22 @@ private:
 // by a hardware interrupt rather than requiring a manual call from loop().
 class MasterClock {
 public:
-    explicit MasterClock(float bpm, ITimeProvider& time)
-        : _time(time), _absoluteTick(0) {
+    explicit MasterClock(float bpm, ITimeProvider& time) : _time(time), _absoluteTick(0) {
         setBpm(bpm);
         _lastUs = static_cast<uint32_t>(_time.now().count());
     }
 
     void setBpm(float bpm) {
-        _bpm        = bpm;
+        _bpm = bpm;
         _intervalUs = static_cast<uint32_t>(MICROS_PER_MINUTE / (bpm * PPQN));
     }
 
-    float    bpm()          const { return _bpm; }
-    uint32_t absoluteTick() const { return _absoluteTick; }
+    float bpm() const {
+        return _bpm;
+    }
+    uint32_t absoluteTick() const {
+        return _absoluteTick;
+    }
 
     // Register an IClockable and return a RAII connection handle.
     // Discarding the return value immediately deregisters — [[nodiscard]] makes
@@ -66,13 +69,15 @@ public:
     void update() {
         // uint32_t subtraction is intentionally unsigned so micros() wrap-around
         // (~71 min) is handled correctly without branching.
-        const auto nowUs     = static_cast<uint32_t>(_time.now().count());
+        const auto nowUs = static_cast<uint32_t>(_time.now().count());
         const auto elapsedUs = nowUs - _lastUs;
-        if (elapsedUs < _intervalUs) return;
+        if (elapsedUs < _intervalUs)
+            return;
 
-        _lastUs += _intervalUs;   // carry overshoot — prevents drift
+        _lastUs += _intervalUs;  // carry overshoot — prevents drift
         for (auto* c : _clockables) {
-            if (c) c->tick(_absoluteTick);
+            if (c)
+                c->tick(_absoluteTick);
         }
         ++_absoluteTick;
     }
@@ -80,13 +85,19 @@ public:
 private:
     void _add(IClockable* c) {
         for (auto*& slot : _clockables) {
-            if (slot == nullptr) { slot = c; return; }
+            if (slot == nullptr) {
+                slot = c;
+                return;
+            }
         }
     }
 
     void _remove(IClockable* c) {
         for (auto*& slot : _clockables) {
-            if (slot == c) { slot = nullptr; return; }
+            if (slot == c) {
+                slot = nullptr;
+                return;
+            }
         }
     }
 
@@ -95,32 +106,33 @@ private:
     static constexpr float MICROS_PER_MINUTE = 60.0f * 1'000'000.0f;
 
     ITimeProvider& _time;
-    float          _bpm          = 120.0f;
-    uint32_t       _intervalUs   = 0;
-    uint32_t       _lastUs       = 0;
-    uint32_t       _absoluteTick = 0;
-    IClockable*    _clockables[MAX_CLOCKABLES] = {};
+    float _bpm = 120.0f;
+    uint32_t _intervalUs = 0;
+    uint32_t _lastUs = 0;
+    uint32_t _absoluteTick = 0;
+    IClockable* _clockables[MAX_CLOCKABLES] = {};
 };
 
 // ── ClockConnection method bodies ─────────────────────────────────────────────
 // Defined here — after MasterClock — so _clock->_remove() can be resolved.
 
 inline ClockConnection::~ClockConnection() {
-    if (_clock) _clock->_remove(_clockable);
+    if (_clock)
+        _clock->_remove(_clockable);
 }
 
-inline ClockConnection::ClockConnection(ClockConnection&& o) noexcept
-    : _clock(o._clock), _clockable(o._clockable) {
-    o._clock     = nullptr;
+inline ClockConnection::ClockConnection(ClockConnection&& o) noexcept : _clock(o._clock), _clockable(o._clockable) {
+    o._clock = nullptr;
     o._clockable = nullptr;
 }
 
 inline ClockConnection& ClockConnection::operator=(ClockConnection&& o) noexcept {
     if (this != &o) {
-        if (_clock) _clock->_remove(_clockable);
-        _clock       = o._clock;
-        _clockable   = o._clockable;
-        o._clock     = nullptr;
+        if (_clock)
+            _clock->_remove(_clockable);
+        _clock = o._clock;
+        _clockable = o._clockable;
+        o._clock = nullptr;
         o._clockable = nullptr;
     }
     return *this;

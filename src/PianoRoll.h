@@ -1,10 +1,12 @@
 #pragma once
 #include <stdint.h>
+
 #include <variant>
-#include "SeqConfig.h"
+
 #include "IClockable.h"
 #include "IInstrument.h"
 #include "MusicalTime.h"
+#include "SeqConfig.h"
 
 // PianoRoll — event-list sequencer driven by an external tick counter.
 //
@@ -27,17 +29,17 @@ public:
 
     explicit PianoRoll(MusicalTime length) : _length(length) {}
 
-    void setInstrument(IInstrument& instrument) { _instrument = &instrument; }
+    void setInstrument(IInstrument& instrument) {
+        _instrument = &instrument;
+    }
 
     // Add a note. start is wrapped to [0, length).
     // Returns NoteId on success, Error otherwise.
-    std::variant<NoteId, Error> addNote(MusicalTime start,
-                                        MusicalTime duration,
-                                        uint8_t     pitch,
-                                        uint8_t     velocity = 100) {
+    std::variant<NoteId, Error> addNote(MusicalTime start, MusicalTime duration, uint8_t pitch, uint8_t velocity = 100) {
         for (uint8_t i = 0; i < MAX_PR_NOTES; i++) {
-            if (_notes[i]._active) continue;
-            _notes[i] = { start % _length, duration, pitch, velocity, true };
+            if (_notes[i]._active)
+                continue;
+            _notes[i] = {start % _length, duration, pitch, velocity, true};
             ++_noteCount;
             return NoteId(i);
         }
@@ -45,20 +47,26 @@ public:
     }
 
     Error removeNote(NoteId id) {
-        if (id >= MAX_PR_NOTES || !_notes[id]._active) return Error::NoteNotFound;
+        if (id >= MAX_PR_NOTES || !_notes[id]._active)
+            return Error::NoteNotFound;
         _notes[id]._active = false;
         --_noteCount;
         return Error::OK;
     }
 
     void clear() {
-        for (auto& n : _notes) n._active = false;
+        for (auto& n : _notes)
+            n._active = false;
         _noteCount = 0;
     }
 
-    uint8_t noteCount() const { return _noteCount; }
+    uint8_t noteCount() const {
+        return _noteCount;
+    }
 
-    MusicalTime length() const { return _length; }
+    MusicalTime length() const {
+        return _length;
+    }
 
     // TODO: optimise note lookup in tick().
     // Current approach is O(n) over the note pool regardless of how many notes
@@ -79,13 +87,15 @@ public:
     // Stateless tick: position is derived from absoluteTick % length.
     // No internal counter — safe to call with any absoluteTick value.
     void tick(uint32_t absoluteTick) override {
-        if (!_instrument || _noteCount == 0) return;
+        if (!_instrument || _noteCount == 0)
+            return;
 
-        const uint32_t local     = absoluteTick % _length.count();
-        uint8_t        processed = 0;
+        const uint32_t local = absoluteTick % _length.count();
+        uint8_t processed = 0;
 
         for (uint8_t i = 0; i < MAX_PR_NOTES && processed < _noteCount; i++) {
-            if (!_notes[i]._active) continue;
+            if (!_notes[i]._active)
+                continue;
             ++processed;
             const auto& n = _notes[i];
 
@@ -102,13 +112,13 @@ private:
     struct Note {
         MusicalTime start;
         MusicalTime duration;
-        uint8_t     pitch    = 0;
-        uint8_t     velocity = 100;
-        bool        _active  = false;
+        uint8_t pitch = 0;
+        uint8_t velocity = 100;
+        bool _active = false;
     };
 
-    Note         _notes[MAX_PR_NOTES] = {};
-    uint8_t      _noteCount           = 0;
-    MusicalTime  _length;
-    IInstrument* _instrument          = nullptr;
+    Note _notes[MAX_PR_NOTES] = {};
+    uint8_t _noteCount = 0;
+    MusicalTime _length;
+    IInstrument* _instrument = nullptr;
 };

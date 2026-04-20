@@ -15,10 +15,10 @@
 // The asymmetry is intentional: nodes own their output buffers (AudioBus) and
 // expose them as views (AudioBusView). Callers decide whether to copy.
 
-using AudioBuffer     = std::vector<float>;
+using AudioBuffer = std::vector<float>;
 using AudioBufferView = std::span<const float>;
-using AudioBus        = std::vector<AudioBuffer>;
-using AudioBusView    = std::span<const AudioBufferView>;
+using AudioBus = std::vector<AudioBuffer>;
+using AudioBusView = std::span<const AudioBufferView>;
 
 // ── AudioNode ─────────────────────────────────────────────────────────────────
 //
@@ -38,6 +38,6 @@ public:
 
     virtual AudioBusView process(AudioBusView inputs) = 0;
 
-    virtual size_t numInputs()  const = 0;
+    virtual size_t numInputs() const = 0;
     virtual size_t numOutputs() const = 0;
 };

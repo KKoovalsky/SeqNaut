@@ -22,7 +22,6 @@
 
 class [[nodiscard]] AudioConnection {
 public:
-
     // ── Builder ───────────────────────────────────────────────────────────────
     //
     // TODO: Minimise rebuild() invocations when wiring multiple connections at
@@ -36,59 +35,74 @@ public:
 
     class Builder {
     public:
-        Builder& output(size_t idx) { _srcOut = idx;   return *this; }
-        Builder& to(AudioNode& dst) { _dst    = &dst;  return *this; }
-        Builder& input(size_t idx)  { _dstIn  = idx;   return *this; }
-        Builder& in(Patch& patch)   { _patch  = &patch; return *this; }
+        Builder& output(size_t idx) {
+            _srcOut = idx;
+            return *this;
+        }
+        Builder& to(AudioNode& dst) {
+            _dst = &dst;
+            return *this;
+        }
+        Builder& input(size_t idx) {
+            _dstIn = idx;
+            return *this;
+        }
+        Builder& in(Patch& patch) {
+            _patch = &patch;
+            return *this;
+        }
 
         [[nodiscard]] AudioConnection connect() {
-            return AudioConnection(
-                Key{},
-                *_patch,
-                _patch->addConnection(*_src, _srcOut, *_dst, _dstIn));
+            return AudioConnection(Key{}, *_patch, _patch->addConnection(*_src, _srcOut, *_dst, _dstIn));
         }
 
     private:
         friend class AudioConnection;
         explicit Builder(AudioNode& src) : _src(&src) {}
 
-        AudioNode* _src    = nullptr;
-        AudioNode* _dst    = nullptr;
-        size_t     _srcOut = 0;
-        size_t     _dstIn  = 0;
-        Patch*     _patch  = nullptr;
+        AudioNode* _src = nullptr;
+        AudioNode* _dst = nullptr;
+        size_t _srcOut = 0;
+        size_t _dstIn = 0;
+        Patch* _patch = nullptr;
     };
 
-    static Builder from(AudioNode& src) { return Builder(src); }
+    static Builder from(AudioNode& src) {
+        return Builder(src);
+    }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     ~AudioConnection() {
-        if (_patch) _patch->removeConnection(_id);
+        if (_patch)
+            _patch->removeConnection(_id);
     }
 
-    AudioConnection(const AudioConnection&)            = delete;
+    AudioConnection(const AudioConnection&) = delete;
     AudioConnection& operator=(const AudioConnection&) = delete;
 
-    AudioConnection(AudioConnection&& o) noexcept
-        : _patch(o._patch), _id(o._id) { o._patch = nullptr; }
+    AudioConnection(AudioConnection&& o) noexcept : _patch(o._patch), _id(o._id) {
+        o._patch = nullptr;
+    }
 
     AudioConnection& operator=(AudioConnection&& o) noexcept {
         if (this != &o) {
-            if (_patch) _patch->removeConnection(_id);
+            if (_patch)
+                _patch->removeConnection(_id);
             _patch = o._patch;
-            _id    = o._id;
+            _id = o._id;
             o._patch = nullptr;
         }
         return *this;
     }
 
 private:
-    struct Key { explicit Key() = default; };
+    struct Key {
+        explicit Key() = default;
+    };
 
-    AudioConnection(Key, Patch& patch, ConnectionId id)
-        : _patch(&patch), _id(id) {}
+    AudioConnection(Key, Patch& patch, ConnectionId id) : _patch(&patch), _id(id) {}
 
-    Patch*       _patch;
+    Patch* _patch;
     ConnectionId _id;
 };
