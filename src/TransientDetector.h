@@ -20,10 +20,12 @@
 //
 // AudioNode contract:
 //   numInputs()  = 1  (mono audio in)
-//   numOutputs() = 1  (ch0 = envelope signal, audio-rate)
-//
-// The envelope output is useful for downstream ducking (feed into a VCA
-// control input) and for visualisation in the host test harness.
+//   numOutputs() = 2
+//     ch0 — envelope signal (audio-rate, useful as VCA control input)
+//     ch1 — gate signal:
+//              +1.0  first 10% of cooldown  (transient phase)
+//              -1.0  remaining 90%          (refractory phase)
+//               0.0  idle
 //
 // All listener callbacks fire synchronously inside process().  They must be
 // real-time safe: no allocation, no blocking I/O.
@@ -59,30 +61,36 @@ public:
     TransientDetector(Notifiable<TransientDetected>& listener, const Config& cfg)
         : _cfg(cfg)
         , _listener(listener)
-        , _outputBus(1, AudioBuffer(128, 0.f))
+        , _outputBus(2, AudioBuffer(128, 0.f))
     {
         _hpf.Init(_cfg.sampleRate);
         _hpf.SetFreq(_cfg.hpCutoffHz);
         _hpf.SetRes(0.f);
         _hpf.SetDrive(0.f);
 
-        _attackCoeff  = 1.f - std::exp(-1.f / (_cfg.attackMs  * 0.001f * _cfg.sampleRate));
-        _releaseCoeff = 1.f - std::exp(-1.f / (_cfg.releaseMs * 0.001f * _cfg.sampleRate));
+        _attackCoeff     = 1.f - std::exp(-1.f / (_cfg.attackMs  * 0.001f * _cfg.sampleRate));
+        _releaseCoeff    = 1.f - std::exp(-1.f / (_cfg.releaseMs * 0.001f * _cfg.sampleRate));
         _cooldownSamples = static_cast<int>(_cfg.cooldownMs * 0.001f * _cfg.sampleRate);
+
+        // Threshold between transient phase (+1) and refractory phase (-1).
+        // Counter starts at _cooldownSamples and counts down; values above
+        // this threshold are still in the first 10%.
+        _transientThreshold = static_cast<int>(_cooldownSamples * 0.9f);
     }
 
     // ── AudioNode ─────────────────────────────────────────────────────────────
 
     size_t numInputs()  const override { return 1; }
-    size_t numOutputs() const override { return 1; }
+    size_t numOutputs() const override { return 2; }
 
     AudioBusView process(AudioBusView inputs) override {
         const AudioBufferView in  = inputs[0];
         const size_t          len = in.size();
 
-        AudioBuffer& envOut = _outputBus[0];
-        if (envOut.size() != len)
-            envOut.resize(len);
+        AudioBuffer& envOut  = _outputBus[0];
+        AudioBuffer& gateOut = _outputBus[1];
+        if (envOut.size()  != len) envOut.resize(len);
+        if (gateOut.size() != len) gateOut.resize(len);
 
         for (size_t n = 0; n < len; ++n) {
             // 1. High-pass filter (emphasise attack frequencies)
@@ -108,10 +116,19 @@ public:
                 _listener.notify({ n, _env, d });
             }
 
+            // 6. Gate output
+            //   +1.0 — first 10% of cooldown (transient phase)
+            //   -1.0 — remaining 90%         (refractory phase)
+            //    0.0 — idle
+            if      (_cooldownCounter > _transientThreshold) gateOut[n] =  1.f;
+            else if (_cooldownCounter > 0)                   gateOut[n] = -1.f;
+            else                                             gateOut[n] =  0.f;
+
             envOut[n] = _env;
         }
 
         _outputView[0] = AudioBufferView(envOut);
+        _outputView[1] = AudioBufferView(gateOut);
         return AudioBusView(_outputView);
     }
 
@@ -119,15 +136,16 @@ private:
     Config             _cfg;
     daisysp::Svf       _hpf;
 
-    float _env             = 0.f;
-    float _envPrev         = 0.f;
-    float _attackCoeff     = 0.f;
-    float _releaseCoeff    = 0.f;
-    int   _cooldownSamples = 0;
-    int   _cooldownCounter = 0;
+    float _env              = 0.f;
+    float _envPrev          = 0.f;
+    float _attackCoeff      = 0.f;
+    float _releaseCoeff     = 0.f;
+    int   _cooldownSamples  = 0;
+    int   _cooldownCounter  = 0;
+    int   _transientThreshold = 0;
 
     AudioBus                      _outputBus;
-    std::array<AudioBufferView, 1> _outputView {};
+    std::array<AudioBufferView, 2> _outputView {};
 
     Notifiable<TransientDetected>& _listener;
 };
