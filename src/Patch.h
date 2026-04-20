@@ -52,17 +52,28 @@ public:
     void process() {
         const AudioBufferView silenceView(_silence);
 
+        // Perform the graph traversal. The graph is already built and sorted. We still need to connect the outputs
+        // to the inputs, after a node has been processed.
         for (size_t i = 0; i < _sorted.size(); ++i) {
             auto& entry = _sorted[i];
-
+            
+            // Iterate over all input sources for that node. At this point, these nodes have already been processed.
+            // Note that for a node that has no inputs, this loop is skipped, therefore we process it straight-away.
+            // This loop takes the corresponding connected node output, which is connected to a specific input
+            // and updates the data view, so finally the node has all the input data it needs to run its process().
             for (size_t j = 0; j < entry.inputSources.size(); ++j) {
                 const auto& src = entry.inputSources[j];
-                entry.inputViews[j] = src.connected
-                    ? _outputs[src.entryIdx][src.outputIdx]
-                    : silenceView;
-            }
+                auto& inputView{entry.inputViews[j]};
+                if (src.connected) {
+                    const auto& sourceNodeEntry = _sorted[src.nodeEntryIdx];
+                    const auto& sourceOutputAudioView = sourceNodeEntry.output[src.outputChannelIdx];
+                    inputView = sourceOutputAudioView;
+                } else {
+                    inputView = silenceView;
+                }
 
-            _outputs[i] = entry.node->process(AudioBusView(entry.inputViews));
+                entry.output = entry.node->process(AudioBusView(entry.inputViews));
+            }
         }
     }
 
@@ -100,16 +111,21 @@ private:
         size_t       dstIn;
     };
 
+    /// Describes the wiring for one input channel of a node.
+    /// Built once in rebuild(); never mutated during process().
     struct InputSource {
-        size_t entryIdx  = 0;
-        size_t outputIdx = 0;
-        bool   connected = false;
+        size_t nodeEntryIdx  = 0;  ///< Index into _sorted of the upstream node.
+        size_t outputChannelIdx = 0;  ///< Which output channel of that upstream node to read.
+        bool   connected = false;  ///< False means no cable is patched; process() feeds silence instead.
     };
 
     struct NodeEntry {
         AudioNode*                   node;
-        std::vector<AudioBufferView> inputViews;    // pre-allocated; filled each process()
+        std::vector<AudioBufferView> inputViews;    // pre-allocated; filled each process().
+                                                    // Could be a local temporary, but that would
+                                                    // heap-allocate on every block — forbidden in audio path.
         std::vector<InputSource>     inputSources;  // pre-computed wiring
+        AudioBusView                 output;        // filled each process() with node's return value
     };
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -120,7 +136,6 @@ private:
     ConnectionId                  _nextId = 0;
     std::vector<ConnectionRecord> _connections;
     std::vector<NodeEntry>        _sorted;
-    std::vector<AudioBusView>     _outputs;   // one per sorted entry; filled each process()
     AudioBuffer                   _silence;
 
     // ── Topology rebuild ──────────────────────────────────────────────────────
@@ -199,17 +214,21 @@ private:
             const size_t ni = sorted[i]->numInputs();
             entry.inputViews.resize(ni);
             entry.inputSources.assign(ni, {});
+
+            // For each node, find all connections that connect to it.
             for (auto& c : _connections) {
-                if (c.dst == sorted[i] && c.dstIn < ni) {
+                if (c.dst == sorted[i]) {
+                    // Having found the connections, find the NodeEntry of the source node.
                     auto it = std::find(sorted.begin(), sorted.end(), c.src);
+                    // Update the corresponding input source: my input channel is the connection's destination channel
                     entry.inputSources[c.dstIn] = {
-                        static_cast<size_t>(std::distance(sorted.begin(), it)),
-                        c.srcOut, true
+                        .nodeEntryIdx  = static_cast<size_t>(std::distance(sorted.begin(), it)),
+                        .outputChannelIdx = c.srcOut,
+                        .connected = true
                     };
                 }
             }
         }
 
-        _outputs.resize(sorted.size());
     }
 };
