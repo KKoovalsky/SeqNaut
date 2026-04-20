@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
     TimestampLogger   logger(cfg.sampleRate);
     TransientDetector detector(logger, cfg);
     WavWriter         envWriter("envelope.wav", cfg.sampleRate);
+    WavWriter         gateWriter("gate.wav",     cfg.sampleRate);
 
     auto c1 = AudioConnection::from(source)
                               .to(detector)
@@ -70,6 +71,11 @@ int main(int argc, char** argv) {
 
     auto c2 = AudioConnection::from(detector).output(0)
                               .to(envWriter) .input(0)
+                              .in(patch)
+                              .connect();
+
+    auto c3 = AudioConnection::from(detector).output(1)
+                              .to(gateWriter).input(0)
                               .in(patch)
                               .connect();
 
