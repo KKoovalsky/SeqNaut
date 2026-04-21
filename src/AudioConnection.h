@@ -7,6 +7,13 @@
 // Move-only, [[nodiscard]].  The connection is live for the lifetime of the
 // object and severed — and the Patch topology rebuilt — on destruction.
 //
+// TODO: Replace the current .in(patch).connect() commit step with
+//   patch.add(AudioConnection::from(x).output(m).to(y).input(n))
+//   so Patch drives wiring explicitly and the builder no longer needs
+//   a patch reference.  patch.add() returns the AudioConnection handle
+//   for the caller to store.  This also opens the door to patch.add()
+//   accepting multiple builders and triggering only one rebuild().
+//
 // Constructed exclusively through the builder:
 //
 //   auto c = AudioConnection::from(oscillator)
