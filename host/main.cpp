@@ -71,11 +71,8 @@ int main(int argc, char** argv) {
     WavWriter gateWriter(stem + "_gate.wav", cfg.sampleRate);
 
     auto c1 = AudioConnection::from(source).to(detector).in(patch).connect();
-
     auto c2 = AudioConnection::from(detector).output(0).to(fastEnvWriter).input(0).in(patch).connect();
-
     auto c3 = AudioConnection::from(detector).output(1).to(slowEnvWriter).input(0).in(patch).connect();
-
     auto c4 = AudioConnection::from(detector).output(2).to(gateWriter).input(0).in(patch).connect();
 
     // ── Run ───────────────────────────────────────────────────────────────────
