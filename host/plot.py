@@ -1,5 +1,8 @@
 import sys
+import numpy as np
 import soundfile as sf
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 files = sys.argv[1:]
@@ -13,11 +16,12 @@ if len(files) == 1:
 
 for ax, path in zip(axes, files):
     data, sr = sf.read(path)
-    time = [i / sr for i in range(len(data))]
+    time = np.arange(len(data)) / sr
     ax.plot(time, data, linewidth=0.3)
     ax.set_title(path)
     ax.set_ylabel("amplitude")
 
 axes[-1].set_xlabel("time (s)")
 plt.tight_layout()
+
 plt.show()
