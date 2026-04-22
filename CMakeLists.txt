@@ -22,6 +22,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(DaisySP)
 
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include(DrLibs)
+include(PortAudio)
+
 add_subdirectory(src)
 add_subdirectory(src/arduino_playground)
 add_subdirectory(host)
