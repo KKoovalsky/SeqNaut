@@ -46,7 +46,7 @@ public:
         const int flags = fcntl(_fd, F_GETFL);
         fcntl(_fd, F_SETFL, flags | O_NONBLOCK);
 
-        std::printf("[%.*s]  tail -f %s\n", static_cast<int>(name.size()), name.data(), _fifoPath.c_str());
+        std::printf("[%.*s]  cat %s\n", static_cast<int>(name.size()), name.data(), _fifoPath.c_str());
     }
 
     ~TerminalScope() {
@@ -103,7 +103,7 @@ private:
             _frame += '\n';
         }
 
-        write(_fd, _frame.data(), _frame.size());
+        [[maybe_unused]] auto _ = write(_fd, _frame.data(), _frame.size());
     }
 
     unsigned sampleToRow(float v) const {
