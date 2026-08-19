@@ -23,6 +23,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(DaisySP)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include(DaisySPArduinoShim)
 include(DrLibs)
 include(PortAudio)
 

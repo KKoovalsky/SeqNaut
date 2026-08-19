@@ -12,30 +12,35 @@ set(ARDUINO_BAUD "921600" CACHE STRING "Serial monitor baud rate")
 # Any arguments after <sketch_dir> are forwarded verbatim to arduino-cli
 # compile (via ARGN), so individual sketches can pass extra --library or
 # --build-property flags without modifying this function.
+#
+# DaisySP:
+#   cmake/DaisySPArduinoShim.cmake symlinks DaisySP headers into src/Filters/
+#   and generates src/daisysp_svf.cpp.  Because src/ is already -I'd
+#   unconditionally, the compiler finds "Filters/svf.h" without any resolver
+#   involvement.  DAISYSP_BUILD_FLAGS_CPP overrides build.flags.cpp to enable
+#   C++20 (required for std::span used in AudioNode.h).
 function(add_arduino_sketch SKETCH_DIR)
     get_filename_component(sketch_stem ${SKETCH_DIR} NAME)
     set(build_dir ${CMAKE_BINARY_DIR}/arduino/${sketch_stem})
     set(hex_file ${build_dir}/${sketch_stem}.ino.hex)
 
-    # arduino-cli only resolves library include paths for headers that appear
-    # directly in sketch files.  Headers inside library headers (e.g.
-    # TransientDetector.h → Filters/svf.h) are never scanned, so DaisySP's
-    # src/ tree must be injected explicitly via --build-property.
-    set(_dsp "${PROJECT_SOURCE_DIR}/vendor/DaisySP/src")
     add_custom_target(${sketch_stem}-compile
         COMMAND arduino-cli compile
             --fqbn ${ARDUINO_FQBN}
             --build-path ${build_dir}
             --library "${PROJECT_SOURCE_DIR}/src"
             --library "${PROJECT_SOURCE_DIR}/src/arduino_playground"
-            --library "${PROJECT_SOURCE_DIR}/vendor/DaisySP"
-            --build-property "compiler.cpp.extra_flags=-I${_dsp} -I${_dsp}/Filters -I${_dsp}/Utility"
+            --build-property "${DAISYSP_BUILD_FLAGS_CPP}"
             ${ARGN}
             ${SKETCH_DIR} --verbose
         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
         BYPRODUCTS ${hex_file}
         USES_TERMINAL
     )
+
+    # Create alias - I intuitively use sketch dir/sketch name as the compile target name.
+    add_custom_target(${sketch_stem})
+    add_dependencies(${sketch_stem} ${sketch_stem}-compile)
 
     add_custom_target(${sketch_stem}-upload
         COMMAND teensy_loader_cli --mcu=${ARDUINO_MCU} -w ${hex_file}
@@ -49,3 +54,4 @@ function(add_arduino_sketch SKETCH_DIR)
 endfunction()
 
 add_subdirectory(SeqnautDemo)
+add_subdirectory(TransientDetectorDemo)
