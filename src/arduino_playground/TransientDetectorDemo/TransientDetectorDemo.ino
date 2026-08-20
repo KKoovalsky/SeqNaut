@@ -51,7 +51,8 @@ void loop() {
         digitalWrite(LED_PIN, HIGH);
         ledTimer = 0;
         ledOn = true;
-        Serial.println("TRANSIENT");
+        Serial.print("TRANSIENT ");
+        Serial.println(millis());
     }
     if (ledOn && ledTimer >= LED_ON_MS) {
         digitalWrite(LED_PIN, LOW);
