@@ -73,8 +73,8 @@ public:
 
     TransientDetector(Notifiable<TransientDetected>& listener, const Config& cfg)
         : _cfg(cfg),
-          _listener(listener),
-          _outputBus(3, AudioBuffer(128, 0.f)) {
+          _outputBus(3, AudioBuffer(128, 0.f)),
+          _listener(listener) {
         _hpf.Init(_cfg.sampleRate);
         _hpf.SetFreq(_cfg.hpCutoffHz);
         _hpf.SetRes(0.f);
