@@ -31,6 +31,10 @@ AudioConnection inputToDetector(input, 0, detectorStream, 0);
 static elapsedMillis ledTimer;
 static bool ledOn = false;
 
+// ── Heartbeat ─────────────────────────────────────────────────────────────────
+static elapsedMillis heartbeatTimer;
+static unsigned long heartbeatSeconds = 0;
+
 void setup() {
     pinMode(LED_PIN, OUTPUT);
     Serial.begin(921600);
@@ -52,5 +56,10 @@ void loop() {
     if (ledOn && ledTimer >= LED_ON_MS) {
         digitalWrite(LED_PIN, LOW);
         ledOn = false;
+    }
+    if (heartbeatTimer >= 1000) {
+        heartbeatTimer = 0;
+        Serial.print("heartbeat ");
+        Serial.println(++heartbeatSeconds);
     }
 }
