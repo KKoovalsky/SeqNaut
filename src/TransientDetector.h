@@ -134,10 +134,26 @@ public:
             const float threshold = _cfg.thresholdK * _attackBg + _cfg.thresholdOffset;
 
             // 7. Trigger detection
-            if (_cooldownCounter > 0) {
+            //
+            // Cooldown alone isn't enough: a note's decay tail can keep the attack
+            // metric above threshold well past cooldown expiry, causing an instant
+            // refire on the same note. Re-arming additionally requires attack to
+            // have dropped back below threshold at least once since the last
+            // trigger — cooldown remains as a minimum-spacing debounce on top.
+            if (_cooldownCounter > 0)
                 --_cooldownCounter;
-            } else if (attack > threshold && _fastEnv > _cfg.noiseFloor) {
+
+            if (!_armed) {
+                if (attack <= threshold)
+                    _armed = true;
+            } else if (_cooldownCounter == 0 && attack > threshold && _fastEnv > _cfg.noiseFloor) {
                 _cooldownCounter = _cooldownSamples;
+                _armed = false;
+                // Snap the threshold background up to the current attack level instead
+                // of letting it climb at its own bgCoeff rate — otherwise the threshold
+                // lags for roughly bgMs after a strong attack, during which the same
+                // note's decay tail can legitimately re-cross it.
+                _attackBg = attack;
                 _listener.notify({n, _fastEnv, attack});
             }
 
@@ -182,6 +198,7 @@ private:
     int _cooldownSamples = 0;
     int _cooldownCounter = 0;
     int _transientThreshold = 0;
+    bool _armed = true;
 
     AudioBus _outputBus;
     std::array<AudioBufferView, 3> _outputView{};
