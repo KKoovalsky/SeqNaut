@@ -16,3 +16,16 @@ build*/
 # generation into the build directory instead (see DaisySPArduinoShim.cmake).
 src/Filters/
 src/daisysp_svf.cpp
+
+# Hantek 6022BE tooling (tools/hantek6022) — venv is machine-local,
+# captures/ is scope output data, neither belongs in git.
+tools/hantek6022/venv/
+tools/hantek6022/captures/
+tools/hantek6022/**/__pycache__/
+
+# Vendored firmware binary — its upstream path happens to contain a
+# "build" directory, which the build*/ rule above would otherwise eat.
+# This is committed runtime data (loaded into the scope over USB at
+# every capture), not a build artifact.
+!tools/hantek6022/PyHT6022/HantekFirmware/custom/build/
+!tools/hantek6022/PyHT6022/HantekFirmware/custom/build/firmware.ihx
