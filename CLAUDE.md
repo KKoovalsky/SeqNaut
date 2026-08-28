@@ -266,3 +266,6 @@ via PortAudio, driven by the same sequencer engine code.
   and flag existing pools for migration when touching those modules.
 - PPQN=48 is the master resolution. All musical time arithmetic flows from this. Change it in
   `SeqConfig.h` only — every tick interval recalculates automatically.
+- `prompts/` holds local planning/working notes (live TODO checklists, session summaries) —
+  gitignored on purpose, not part of the shipped project. Check there for more context on
+  current work before assuming a fresh clone has the full picture.

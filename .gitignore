@@ -29,3 +29,7 @@ tools/hantek6022/**/__pycache__/
 # every capture), not a build artifact.
 !tools/hantek6022/PyHT6022/HantekFirmware/custom/build/
 !tools/hantek6022/PyHT6022/HantekFirmware/custom/build/firmware.ihx
+
+# Local planning/working notes (TODOs, session summaries) — not part of
+# the shipped project, kept out of git on purpose.
+prompts/
