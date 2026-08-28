@@ -13,6 +13,7 @@ import sys
 import time
 from pathlib import Path
 
+import usb1
 from PyHT6022.LibUsbScope import Oscilloscope
 
 VOLTAGE_RANGE_HELP = "0x01=+/-5V 0x02=+/-2.5V 0x05=+/-1V 0x0a=+/-500mV"
@@ -107,7 +108,13 @@ def main():
                                        outstanding_transfers=args.outstanding_transfers, raw=True)
     try:
         while not stop:
-            scope.context.handleEventsTimeout(tv=0.1)  # bounded wait so SIGINT is checked promptly
+            try:
+                scope.context.handleEventsTimeout(tv=0.1)  # bounded wait so SIGINT is checked promptly
+            except usb1.USBErrorInterrupted:
+                # SIGINT landed inside the libusb call itself rather than between
+                # iterations; the signal handler already set `stop`, so just loop
+                # around and let the while-condition end things cleanly.
+                pass
     finally:
         scope.stop_capture()
         shutdown_event.set()
