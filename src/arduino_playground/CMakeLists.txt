@@ -43,7 +43,10 @@ function(add_arduino_sketch SKETCH_DIR)
     add_dependencies(${sketch_stem} ${sketch_stem}-compile)
 
     add_custom_target(${sketch_stem}-upload
-        COMMAND teensy_loader_cli --mcu=${ARDUINO_MCU} -w ${hex_file}
+        # -s: soft-reboot the board into the bootloader over its running
+        # sketch's USB serial port, so upload doesn't need a physical press
+        # of the reset button (needed for unattended/self-driven reflashes).
+        COMMAND teensy_loader_cli --mcu=${ARDUINO_MCU} -w -s ${hex_file}
         USES_TERMINAL
     )
 
