@@ -22,12 +22,26 @@
 //     → attack metric = fast - slow
 //     → adaptive threshold = k * attack_bg + offset
 //     → floor check (fast > noiseFloor)
-//     → cooldown
+//     → cooldown + re-arm gate + confirm window
 //     → trigger
 //
 // The adaptive threshold tracks the recent background of the attack metric,
 // making the detector sensitive to rapid energy rises relative to local context
 // rather than fixed absolute levels.
+//
+// One physical onset must produce exactly one trigger. Three mechanisms keep a
+// single strum/note from firing repeatedly as its energy rises and rings out:
+//   • cooldown  — hard minimum spacing between triggers.
+//   • re-arm gate — after a trigger the detector stays disarmed until the attack
+//                   metric has sat at/below threshold continuously for reArmMs;
+//                   the still-rising body of the same onset keeps resetting that
+//                   timer, so a decaying note re-crossing threshold cannot refire.
+//   • confirm window — a threshold crossing does not fire immediately; it starts
+//                   a short countdown and fires at the end reporting the peak seen
+//                   during it. The near-silent leading whisker of a pick either
+//                   merges into the bloom that follows within the window (one
+//                   trigger, at the bloom's level) or, if it fades back to
+//                   silence, never lifts the peak past the floor and is dropped.
 //
 // AudioNode contract:
 //   numInputs()  = 1  (mono audio in)
@@ -57,14 +71,16 @@ public:
         float thresholdOffset = 0.002f;  // minimum threshold margin (prevents collapse in silence)
         float noiseFloor = 0.005f;       // minimum fast envelope level to qualify
         float cooldownMs = 30.f;         // refractory period after a trigger
+        float reArmMs = 50.f;            // attack must sit <= threshold this long before re-arming
+        float confirmMs = 3.f;           // hold-off window after a crossing before it fires (0 = off)
     };
 
     // ── Event ─────────────────────────────────────────────────────────────────
 
     struct TransientDetected {
-        size_t sampleIndex;  ///< Sample offset within the current block.
-        float fastEnv;       ///< Fast envelope value at trigger moment.
-        float attackMetric;  ///< fast - slow at trigger moment; indicates attack sharpness.
+        size_t sampleIndex;  ///< Sample offset within the block the trigger fired in.
+        float fastEnv;       ///< Peak fast envelope over the confirm window.
+        float attackMetric;  ///< Peak (fast - slow) over the confirm window; attack sharpness.
     };
 
     // ── Construction ──────────────────────────────────────────────────────────
@@ -85,6 +101,8 @@ public:
         _slowCoeff = coeff(_cfg.slowMs);
         _bgCoeff = coeff(_cfg.bgMs);
         _cooldownSamples = static_cast<int>(_cfg.cooldownMs * 0.001f * _cfg.sampleRate);
+        _reArmSamples = static_cast<int>(_cfg.reArmMs * 0.001f * _cfg.sampleRate);
+        _confirmSamples = static_cast<int>(_cfg.confirmMs * 0.001f * _cfg.sampleRate);
         _transientThreshold = static_cast<int>(_cooldownSamples * 0.9f);
     }
 
@@ -133,28 +151,49 @@ public:
             _attackBg += _bgCoeff * (attack - _attackBg);
             const float threshold = _cfg.thresholdK * _attackBg + _cfg.thresholdOffset;
 
-            // 7. Trigger detection
-            //
-            // Cooldown alone isn't enough: a note's decay tail can keep the attack
-            // metric above threshold well past cooldown expiry, causing an instant
-            // refire on the same note. Re-arming additionally requires attack to
-            // have dropped back below threshold at least once since the last
-            // trigger — cooldown remains as a minimum-spacing debounce on top.
+            // 7. Trigger detection — see the class-level comment for why the
+            //    re-arm gate and confirm window exist. State machine:
+            //      disarmed  → count consecutive samples with attack <= threshold;
+            //                  re-arm once that run reaches reArmSamples.
+            //      armed     → a crossing (past cooldown) opens the confirm window.
+            //      confirming → track peak fast/attack; at window end fire if the
+            //                   peak still clears threshold + floor, else discard.
             if (_cooldownCounter > 0)
                 --_cooldownCounter;
 
+            const bool crossing = attack > threshold && _fastEnv > _cfg.noiseFloor;
+
             if (!_armed) {
-                if (attack <= threshold)
-                    _armed = true;
-            } else if (_cooldownCounter == 0 && attack > threshold && _fastEnv > _cfg.noiseFloor) {
-                _cooldownCounter = _cooldownSamples;
-                _armed = false;
-                // Snap the threshold background up to the current attack level instead
-                // of letting it climb at its own bgCoeff rate — otherwise the threshold
-                // lags for roughly bgMs after a strong attack, during which the same
-                // note's decay tail can legitimately re-cross it.
-                _attackBg = attack;
-                _listener.notify({n, _fastEnv, attack});
+                if (attack <= threshold) {
+                    if (++_belowThreshCount >= _reArmSamples)
+                        _armed = true;
+                } else {
+                    _belowThreshCount = 0;
+                }
+            } else if (_confirming) {
+                _confirmPeakFast = std::max(_confirmPeakFast, _fastEnv);
+                _confirmPeakAttack = std::max(_confirmPeakAttack, attack);
+                if (--_confirmCounter <= 0) {
+                    _confirming = false;
+                    if (_confirmPeakAttack > threshold && _confirmPeakFast > _cfg.noiseFloor) {
+                        _cooldownCounter = _cooldownSamples;
+                        _armed = false;
+                        _belowThreshCount = 0;
+                        _listener.notify({n, _confirmPeakFast, _confirmPeakAttack});
+                    }
+                }
+            } else if (_cooldownCounter == 0 && crossing) {
+                if (_confirmSamples > 0) {
+                    _confirming = true;
+                    _confirmCounter = _confirmSamples;
+                    _confirmPeakFast = _fastEnv;
+                    _confirmPeakAttack = attack;
+                } else {
+                    _cooldownCounter = _cooldownSamples;
+                    _armed = false;
+                    _belowThreshCount = 0;
+                    _listener.notify({n, _fastEnv, attack});
+                }
             }
 
             // 8. Gate output
@@ -197,6 +236,13 @@ private:
 
     int _cooldownSamples = 0;
     int _cooldownCounter = 0;
+    int _reArmSamples = 0;
+    int _belowThreshCount = 0;
+    int _confirmSamples = 0;
+    int _confirmCounter = 0;
+    float _confirmPeakFast = 0.f;
+    float _confirmPeakAttack = 0.f;
+    bool _confirming = false;
     int _transientThreshold = 0;
     bool _armed = true;
 

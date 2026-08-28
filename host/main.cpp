@@ -33,7 +33,8 @@ private:
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::fprintf(stderr, "usage: transient_detector <file.wav> [hpCutoffHz] [threshold] [cooldownMs]\n");
+        std::fprintf(stderr,
+                     "usage: transient_detector <file.wav> [hpCutoffHz] [threshold] [cooldownMs] [reArmMs] [confirmMs]\n");
         return 1;
     }
 
@@ -50,15 +51,21 @@ int main(int argc, char** argv) {
         cfg.thresholdK = std::stof(argv[3]);
     if (argc >= 5)
         cfg.cooldownMs = std::stof(argv[4]);
+    if (argc >= 6)
+        cfg.reArmMs = std::stof(argv[5]);
+    if (argc >= 7)
+        cfg.confirmMs = std::stof(argv[6]);
+    if (argc >= 8)
+        cfg.noiseFloor = std::stof(argv[7]);
 
     std::printf("File      : %s\n", argv[1]);
     std::printf("SampleRate: %.0f Hz\n", cfg.sampleRate);
     std::printf(
         "Config    : hp=%.0f Hz"
         "  fast=%.1f/%.1f ms  slow=%.0f ms  bg=%.0f ms"
-        "  k=%.2f  offset=%.4f  floor=%.4f  cooldown=%.0f ms\n\n",
+        "  k=%.2f  offset=%.4f  floor=%.4f  cooldown=%.0f ms  reArm=%.0f ms  confirm=%.0f ms\n\n",
         cfg.hpCutoffHz, cfg.fastAttackMs, cfg.fastReleaseMs, cfg.slowMs, cfg.bgMs, cfg.thresholdK, cfg.thresholdOffset,
-        cfg.noiseFloor, cfg.cooldownMs);
+        cfg.noiseFloor, cfg.cooldownMs, cfg.reArmMs, cfg.confirmMs);
 
     // ── Build graph ───────────────────────────────────────────────────────────
 
