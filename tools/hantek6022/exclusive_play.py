@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Play an audio file with every other PipeWire playback stream muted for the
-duration, so a background notification/app sound can't leak into a test
-signal that's feeding the AFE during an automated test loop.
+"""Play one or more audio files, in sequence, with every other PipeWire
+playback stream muted for the duration, so a background notification/app
+sound can't leak into a test signal that's feeding the AFE during an
+automated test loop. Each file plays separately (not concatenated), so a
+capture's silence gaps between them still line up with real file boundaries.
 
 Tags our own playback with a distinctive PIPEWIRE_PROPS node.description (set
 via env var, which pipewire-alsa respects) so it's never mistaken for "someone
@@ -51,11 +53,13 @@ def set_mute(node_id, mute):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("file", help="Audio file to play (via aplay)")
+    p.add_argument("files", nargs="+", help="Audio file(s) to play in sequence (via aplay)")
+    p.add_argument("--gap-s", type=float, default=1.0, help="Silence gap between files (seconds)")
     p.add_argument("--poll-ms", type=int, default=200, help="Watcher poll interval while playing")
     args = p.parse_args()
 
     touched = {}  # node_id -> original mute state, for everything we've muted
+    current_proc = None  # the in-flight aplay subprocess, for the signal handler to reach
 
     def mute_new():
         try:
@@ -89,7 +93,6 @@ def main():
     print(f"  {len(touched)} stream(s) muted.")
 
     env = dict(os.environ, PIPEWIRE_PROPS=f'{{ node.description = "{OWN_TAG}" }}')
-    proc = subprocess.Popen(["aplay", args.file], env=env)
     stop_watch = threading.Event()
 
     def watcher():
@@ -108,14 +111,21 @@ def main():
         print("Restored prior mute states.")
 
     def on_signal(signum, _frame):
-        proc.terminate()
+        if current_proc is not None:
+            current_proc.terminate()
         restore()
         sys.exit(128 + signum)
 
     signal.signal(signal.SIGINT, on_signal)
     signal.signal(signal.SIGTERM, on_signal)
     try:
-        proc.wait()
+        for i, f in enumerate(args.files):
+            print(f"Playing {f} ({i+1}/{len(args.files)})...")
+            current_proc = subprocess.Popen(["aplay", f], env=env)
+            current_proc.wait()
+            current_proc = None
+            if i < len(args.files) - 1:
+                time.sleep(args.gap_s)
     finally:
         restore()
 
